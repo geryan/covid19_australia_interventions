@@ -23,6 +23,8 @@ baseline_point <- tibble::tibble(
 
 # data, parameters, predictions, and likelihood definition for the model
 data <- macrodistancing_data()
+# when re-running reff just run up to above this then skip to # make predictions
+
 params <- macrodistancing_params(baseline_contact_params)
 predictions <- macrodistancing_model(data, params)
 out <- macrodistancing_likelihood(predictions, data)
@@ -66,9 +68,9 @@ fitted_model <- module(
 
 # save fitted model
 saveRDS(fitted_model, "outputs/fitted_macro_model.RDS")
-# fitted_model <- readRDS("outputs/fitted_macro_model.RDS")
 
 # # make predictions using updated data on a day out of sync with standard Monday fit
+# fitted_model <- readRDS("outputs/fitted_macro_model.RDS")
 # fitted_model$data <- data
 # fitted_model$predictions <- macrodistancing_model(fitted_model$data, fitted_model$params)
 

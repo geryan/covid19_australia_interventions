@@ -482,7 +482,7 @@ interventions <- function(
         tibble::tribble(
           ~date, ~state,
           "2021-02-18", "VIC"#,
-          #"2021-06-03", "VIC"
+          #"2021-06-10", "VIC"
         )
       )
     
@@ -4623,7 +4623,7 @@ reff_model_data <- function(
   # truncate mobility data to no later than the day before the linelist (needed
   # for modelling on historic linelists) and then get the most recent date
   latest_mobility_date <- mobility_data %>%
-    filter(date < linelist_date) %>%
+    #filter(date < linelist_date) %>%
     pull(date) %>%
     max()
   
@@ -5523,22 +5523,22 @@ fit_reff_model <- function(data, max_tries = 1, iterations_per_step = 2000) {
   )
   
   # if it did not converge, try extending it a bunch more times
-  finished <- converged(draws)
-  tries <- 0
-  while(!finished & tries < max_tries) {
-    draws <- extra_samples(
-      draws,
-      iterations_per_step,
-      one_by_one = TRUE
-    )
-    tries <- tries + 1
-    finished <- converged(draws)
-  }
-  
-  # warn if we timed out before converging successfully
-  if (tries == max_tries) {
-    warning("sampling did not converge according to benchmarks")
-  }
+  # finished <- converged(draws)
+  # tries <- 0
+  # while(!finished & tries < max_tries) {
+  #   draws <- extra_samples(
+  #     draws,
+  #     iterations_per_step,
+  #     one_by_one = TRUE
+  #   )
+  #   tries <- tries + 1
+  #   finished <- converged(draws)
+  # }
+  # 
+  # # warn if we timed out before converging successfully
+  # if (tries == max_tries) {
+  #   warning("sampling did not converge according to benchmarks")
+  # }
   
   # return a fitted model object
   module(greta_model, greta_arrays, data, draws)
@@ -7414,9 +7414,12 @@ estimate_delays <- function(
   all_states = NULL,
   direction = c("forward", "backward"),
   min_records = 500,
+  #min_records = 50,
   absolute_min_records = 100,
+  #absolute_min_records = 20,
   min_window = 7,
   max_window = 56,
+  #max_window = 14,
   national_exclusions = tibble(state = "VIC", start = as.Date("2020-06-14"), end = NA)
 ) {
   
@@ -7730,26 +7733,7 @@ predict_mobility_trend <- function(
   
   # create intervention step-change covariates
   intervention_steps <- interventions(end_dates = TRUE) %>%
-    # add events for SA and QLD ending short lockdowns, to enable effects to be
-    # reversed
-    # bind_rows(
-    #   tibble(
-    #     date = as.Date("2020-11-22"),
-    #     state = "SA"
-    #   ),
-    #   tibble(
-    #     date = as.Date("2021-01-12"),
-    #     state = "QLD"
-    #   ),
-    #   tibble(
-    #     date = as.Date("2021-02-05"),
-    #     state = "WA"
-    #   ),
-    #   tibble(
-    #     date = as.Date("2021-02-18"),
-    #     state = "VIC"
-    #   )
-    # ) %>% # this code now superceded by end_dates = TRUE
+    filter(date != as.Date("2021-05-28")) %>% # because vic lockdown effect
     filter(date <= max_data_date) %>%
     mutate(
       intervention_id = paste0(
@@ -7796,6 +7780,36 @@ predict_mobility_trend <- function(
       dow = as.character(dow)
     ) %>%
     filter(!is.na(trend))
+  
+  # add hacky VIC lockdown effect
+    if(mobility$state[1] == "VIC"){
+    df <- df %>%
+      mutate(
+        # # no reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") ~ 1,
+        #   TRUE ~ 0
+        # )
+        # # full reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+        #   date > as.Date("2021-06-10") ~ 0,
+        #   TRUE ~ 0
+        # )
+        # half reversion
+        vic_lockdown = case_when(
+          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+          date > as.Date("2021-06-10") ~ 0.5,
+          TRUE ~ 0
+        )
+      )
+        
+    } else{
+    df <- df %>%
+      mutate(
+        vic_lockdown = 0
+      )
+  }
 
   library(mgcv)
   
@@ -7806,6 +7820,9 @@ predict_mobility_trend <- function(
              
              # step changes around intervention impositions
              intervention_stage +
+             
+             # step change for vic lockdown May-June 2021
+             vic_lockdown +
              
              # random effect on holidays (different for each holiday, but shrunk
              # to an average holiday effect which used to predict into future)
@@ -7870,6 +7887,36 @@ predict_mobility_trend <- function(
       date_num = pmax(date_num, min_data_date - min_date),
       date_num = pmin(date_num, max_data_date - min_date)
     )
+  
+  if(mobility$state[1] == "VIC"){
+    pred_df <- pred_df %>%
+      mutate(
+        # # no reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") ~ 1,
+        #   TRUE ~ 0
+        # )
+        # # full reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+        #   date > as.Date("2021-06-10") ~ 0,
+        #   TRUE ~ 0
+        # )
+        # half reversion
+        vic_lockdown = case_when(
+          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+          date > as.Date("2021-06-10") ~ 0.5,
+          TRUE ~ 0
+        )
+      )
+    
+  } else{
+    pred_df <- pred_df %>%
+      mutate(
+        vic_lockdown = 0
+      )
+  }
+  
   
   # predict trends under these conditions, and average over day of the week
   pred_df <- pred_df %>%

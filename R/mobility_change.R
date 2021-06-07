@@ -82,13 +82,13 @@ for (this_state in all_states) {
       size = 0.2,
       col = "purple"
     ) +
-    # # predicted trend
-    # geom_line(
-    #   aes(date, predicted_trend),
-    #   size = 1
-    # ) +
+    # predicted trend
+    geom_line(
+      aes(date, predicted_trend),
+      size = 1
+    ) +
     coord_cartesian(
-      xlim = c(as.Date("2020-03-01"), last_date)
+      xlim = c(as.Date("2020-03-01"), last_date + 7 * n_weeks_ahead)
     ) +
     scale_y_continuous(position = "right") +
     scale_x_date(
@@ -116,7 +116,7 @@ for (this_state in all_states) {
   dpi <- 150
   ggsave(
     filename = sprintf(
-      "outputs/figures/%s_datastream_model_fit_%s.png",
+      "outputs/figures/vic_lockdown_half/%s_datastream_model_fit_%s.png",
       this_state,
       last_date
     ),
@@ -143,7 +143,7 @@ mobility_fitted %>%
     change,
     date
   ) %>%
-  saveRDS("outputs/google_change_trends.RDS")
+  saveRDS("outputs/google_change_trends_half.RDS")
 
 # output 3-column plot
 target_datastreams <- c("Google: time at workplaces",
@@ -236,7 +236,7 @@ mobility_fitted %>%
 dpi <- 300
 ggsave(
   filename = sprintf(
-    "outputs/figures/multistate_model_fit_%s.png",
+    "outputs/figures/vic_lockdown_half/multistate_model_fit_%s.png",
     last_date
   ),
   width = 2481 / dpi,

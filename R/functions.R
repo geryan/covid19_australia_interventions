@@ -7790,18 +7790,18 @@ predict_mobility_trend <- function(
         #   date >= as.Date("2021-05-28") ~ 1,
         #   TRUE ~ 0
         # )
-        # # full reversion
-        # vic_lockdown = case_when(
-        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
-        #   date > as.Date("2021-06-10") ~ 0,
-        #   TRUE ~ 0
-        # )
-        # half reversion
+        # full reversion
         vic_lockdown = case_when(
           date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
-          date > as.Date("2021-06-10") ~ 0.5,
+          date > as.Date("2021-06-10") ~ 0,
           TRUE ~ 0
         )
+        # # half reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+        #   date > as.Date("2021-06-10") ~ 0.5,
+        #   TRUE ~ 0
+        # )
       )
         
     } else{
@@ -7896,18 +7896,18 @@ predict_mobility_trend <- function(
         #   date >= as.Date("2021-05-28") ~ 1,
         #   TRUE ~ 0
         # )
-        # # full reversion
-        # vic_lockdown = case_when(
-        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
-        #   date > as.Date("2021-06-10") ~ 0,
-        #   TRUE ~ 0
-        # )
-        # half reversion
+        # full reversion
         vic_lockdown = case_when(
           date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
-          date > as.Date("2021-06-10") ~ 0.5,
+          date > as.Date("2021-06-10") ~ 0,
           TRUE ~ 0
         )
+        # # half reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+        #   date > as.Date("2021-06-10") ~ 0.5,
+        #   TRUE ~ 0
+        # )
       )
     
   } else{

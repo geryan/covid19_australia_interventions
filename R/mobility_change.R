@@ -116,7 +116,7 @@ for (this_state in all_states) {
   dpi <- 150
   ggsave(
     filename = sprintf(
-      "outputs/vl_half/figures/%s_datastream_model_fit_%s.png",
+      "outputs/vl_full/figures/%s_datastream_model_fit_%s.png",
       this_state,
       last_date
     ),
@@ -143,7 +143,7 @@ mobility_fitted %>%
     change,
     date
   ) %>%
-  saveRDS("outputs/vl_half/google_change_trends.RDS")
+  saveRDS("outputs/vl_full/google_change_trends.RDS")
 
 # output 3-column plot
 target_datastreams <- c("Google: time at workplaces",
@@ -236,7 +236,7 @@ mobility_fitted %>%
 dpi <- 300
 ggsave(
   filename = sprintf(
-    "outputs/vl_half/figures/multistate_model_fit_%s.png",
+    "outputs/vl_full/figures/multistate_model_fit_%s.png",
     last_date
   ),
   width = 2481 / dpi,

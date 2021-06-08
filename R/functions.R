@@ -2142,7 +2142,7 @@ logit_p_prior <- function(params, gi_cdf) {
 # duration 
 location_change <- function(dates = NULL) {
   
-  google_change_trends <- readRDS("outputs/google_change_trends.RDS") 
+  google_change_trends <- readRDS("outputs/vl_half/google_change_trends.RDS") 
   
   location_change_trends <- google_change_trends %>%
     mutate(location = case_when(
@@ -4611,7 +4611,7 @@ reff_model_data <- function(
   linelist_date <- max(linelist_raw$date_linelist)
   
   # load modelled google mobility data 
-  mobility_data <- readRDS("outputs/google_change_trends.RDS")
+  mobility_data <- readRDS("outputs/vl_half/google_change_trends.RDS")
   
   # compute delays from symptom onset to detection for each state over time
   notification_delay_cdf <- get_notification_delay_cdf(linelist_raw)

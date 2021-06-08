@@ -3,11 +3,11 @@ source("R/lib.R")
 source("R/functions.R")
 
 # load, cache, and format the mobility data
-mobility <- all_mobility() %>%
-  append_google_data()
-  
-saveRDS(mobility, file = "outputs/cached_mobility.RDS")
-# mobility <- readRDS("outputs/cached_mobility.RDS")
+# mobility <- all_mobility() %>%
+#   append_google_data()
+#   
+# saveRDS(mobility, file = "outputs/cached_mobility.RDS")
+ mobility <- readRDS("outputs/cached_mobility.RDS")
 
 n_weeks_ahead <- 6
 first_date <- min(mobility$date)
@@ -116,7 +116,7 @@ for (this_state in all_states) {
   dpi <- 150
   ggsave(
     filename = sprintf(
-      "outputs/figures/vic_lockdown_half/%s_datastream_model_fit_%s.png",
+      "outputs/vl_half/figures/%s_datastream_model_fit_%s.png",
       this_state,
       last_date
     ),
@@ -143,7 +143,7 @@ mobility_fitted %>%
     change,
     date
   ) %>%
-  saveRDS("outputs/google_change_trends_half.RDS")
+  saveRDS("outputs/vl_half/google_change_trends.RDS")
 
 # output 3-column plot
 target_datastreams <- c("Google: time at workplaces",
@@ -236,7 +236,7 @@ mobility_fitted %>%
 dpi <- 300
 ggsave(
   filename = sprintf(
-    "outputs/figures/vic_lockdown_half/multistate_model_fit_%s.png",
+    "outputs/vl_half/figures/multistate_model_fit_%s.png",
     last_date
   ),
   width = 2481 / dpi,

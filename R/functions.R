@@ -7798,7 +7798,7 @@ predict_mobility_trend <- function(
         # )
         # half reversion
         vic_lockdown = case_when(
-          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-17") ~ 1,
           date > as.Date("2021-06-17") ~ 0.5,
           TRUE ~ 0
         )
@@ -7904,7 +7904,7 @@ predict_mobility_trend <- function(
         # )
         # half reversion
         vic_lockdown = case_when(
-          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-17") ~ 1,
           date > as.Date("2021-06-17") ~ 0.5,
           TRUE ~ 0
         )

@@ -35,7 +35,7 @@ saveRDS(fitted_model, "outputs/vl_half/fitted_reff_model.RDS")
 # # visual checks of model fit
 # #plot_reff_checks(fitted_model)
 # 
-# timeseries <- readRDS("outputs/vaccine_timeseries.RDS")
+timeseries <- readRDS("outputs/vaccine_timeseries.RDS")
 # 
 # # do plots for main period
 reff_plotting(fitted_model, dir = "outputs/vl_half")
@@ -51,7 +51,7 @@ reff_plotting(fitted_model,
               max_date = fitted_model$data$dates$latest_project,
               mobility_extrapolation_rectangle = FALSE,
               #projection_date = fitted_model$data$dates$latest_mobility
-              projection_date = as.Date("2021-06-02"))
+              projection_date = as.Date("2021-06-07"))
 
 
 # produce simulations where proportion VOC is zero throughout period for reporting

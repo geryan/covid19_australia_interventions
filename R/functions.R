@@ -2142,7 +2142,7 @@ logit_p_prior <- function(params, gi_cdf) {
 # duration 
 location_change <- function(dates = NULL) {
   
-  google_change_trends <- readRDS("outputs/vl_full/google_change_trends.RDS") 
+  google_change_trends <- readRDS("outputs/vl_nil/google_change_trends.RDS") 
   
   location_change_trends <- google_change_trends %>%
     mutate(location = case_when(
@@ -4611,7 +4611,7 @@ reff_model_data <- function(
   linelist_date <- max(linelist_raw$date_linelist)
   
   # load modelled google mobility data 
-  mobility_data <- readRDS("outputs/vl_full/google_change_trends.RDS")
+  mobility_data <- readRDS("outputs/vl_nil/google_change_trends.RDS")
   
   # compute delays from symptom onset to detection for each state over time
   notification_delay_cdf <- get_notification_delay_cdf(linelist_raw)
@@ -7785,17 +7785,17 @@ predict_mobility_trend <- function(
     if(mobility$state[1] == "VIC"){
     df <- df %>%
       mutate(
-        # # no reversion
-        # vic_lockdown = case_when(
-        #   date >= as.Date("2021-05-28") ~ 1,
-        #   TRUE ~ 0
-        # )
-        # full reversion
+        # no reversion
         vic_lockdown = case_when(
-          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
-          date > as.Date("2021-06-10") ~ 0,
+          date >= as.Date("2021-05-28") ~ 1,
           TRUE ~ 0
         )
+        # # full reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+        #   date > as.Date("2021-06-10") ~ 0,
+        #   TRUE ~ 0
+        # )
         # # half reversion
         # vic_lockdown = case_when(
         #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
@@ -7891,17 +7891,17 @@ predict_mobility_trend <- function(
   if(mobility$state[1] == "VIC"){
     pred_df <- pred_df %>%
       mutate(
-        # # no reversion
-        # vic_lockdown = case_when(
-        #   date >= as.Date("2021-05-28") ~ 1,
-        #   TRUE ~ 0
-        # )
-        # full reversion
+        # no reversion
         vic_lockdown = case_when(
-          date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
-          date > as.Date("2021-06-10") ~ 0,
+          date >= as.Date("2021-05-28") ~ 1,
           TRUE ~ 0
         )
+        # # full reversion
+        # vic_lockdown = case_when(
+        #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,
+        #   date > as.Date("2021-06-10") ~ 0,
+        #   TRUE ~ 0
+        # )
         # # half reversion
         # vic_lockdown = case_when(
         #   date >= as.Date("2021-05-28") & date <= as.Date("2021-06-10") ~ 1,

@@ -26,11 +26,11 @@ data$dates$linelist
 fitted_model <- fit_reff_model(data)
 
 # save the fitted model object
-saveRDS(fitted_model, "outputs/vl_full/fitted_reff_model.RDS")
+saveRDS(fitted_model, "outputs/vl_nil/fitted_reff_model.RDS")
 # # fitted_model <- readRDS("outputs/fitted_reff_model.RDS")
 # 
 # # output Reff trajectory draws for Rob M
- write_reff_sims(fitted_model, dir = "outputs/vl_full/projection")
+ write_reff_sims(fitted_model, dir = "outputs/vl_nil/projection")
 # 
 # # visual checks of model fit
 # #plot_reff_checks(fitted_model)
@@ -38,7 +38,7 @@ saveRDS(fitted_model, "outputs/vl_full/fitted_reff_model.RDS")
 timeseries <- readRDS("outputs/vaccine_timeseries.RDS")
 # 
 # # do plots for main period
-reff_plotting(fitted_model, dir = "outputs/vl_full")
+reff_plotting(fitted_model, dir = "outputs/vl_nil")
 # 
 # fitted_model_ext <- fitted_model
 # fitted_model_ext$data$dates$latest_mobility <- mobility_data$date %>% max
@@ -47,7 +47,7 @@ reff_plotting(fitted_model, dir = "outputs/vl_full")
 
 # and for projected part
 reff_plotting(fitted_model,
-              dir = "outputs/vl_full/projection",
+              dir = "outputs/vl_nil/projection",
               max_date = fitted_model$data$dates$latest_project,
               mobility_extrapolation_rectangle = FALSE,
               #projection_date = fitted_model$data$dates$latest_mobility

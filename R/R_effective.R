@@ -20,27 +20,27 @@ write_reff_key_dates(data)
 write_local_cases(data)
 
 # format and write out any new linelists to the past_cases folder for Rob H
-update_past_cases()
+#update_past_cases()
 
 # define the model (and greta arrays) for Reff, and sample until convergence
 fitted_model <- fit_reff_model(data)
 
 # save the fitted model object
-saveRDS(fitted_model, "outputs/fitted_reff_model.RDS")
-# fitted_model <- readRDS("outputs/fitted_reff_model.RDS")
+saveRDS(fitted_model, "outputs/nsw_half/fitted_reff_model.RDS")
+# fitted_model <- readRDS("outputs/nsw_half/fitted_reff_model.RDS")
 
 # output Reff trajectory draws for Rob M
-write_reff_sims(fitted_model, dir = "outputs/projection")
+write_reff_sims(fitted_model, dir = "outputs/nsw_half/projection")
 
 # visual checks of model fit
 plot_reff_checks(fitted_model)
 
 # do plots for main period
-reff_plotting(fitted_model, dir = "outputs")
+reff_plotting(fitted_model, dir = "outputs/nsw_half")
 
 # and for projected part
 reff_plotting(fitted_model,
-              dir = "outputs/projection",
+              dir = "outputs/nsw_half/projection",
               max_date = fitted_model$data$dates$latest_project,
               mobility_extrapolation_rectangle = FALSE,
               projection_date = fitted_model$data$dates$latest_mobility)
@@ -48,6 +48,6 @@ reff_plotting(fitted_model,
 
 # produce simulations where proportion VOC is zero throughout period for reporting
 # in common operating picture table
-simulate_wild_type()
+#simulate_wild_type()
 
-simulate_delta()
+#simulate_delta()

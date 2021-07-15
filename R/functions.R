@@ -2248,7 +2248,7 @@ logit_p_prior <- function(params, gi_cdf) {
 # duration 
 location_change <- function(dates = NULL) {
   
-  google_change_trends <- readRDS("outputs/google_change_trends.RDS") 
+  google_change_trends <- readRDS("outputs/nsw_half/google_change_trends.RDS") 
   
   location_change_trends <- google_change_trends %>%
     mutate(location = case_when(
@@ -4914,7 +4914,7 @@ reff_model_data <- function(
   linelist_date <- max(linelist_raw$date_linelist)
   
   # load modelled google mobility data 
-  mobility_data <- readRDS("outputs/google_change_trends.RDS")
+  mobility_data <- readRDS("outputs/nsw_half/google_change_trends.RDS")
   
   # compute delays from symptom onset to detection for each state over time
   notification_delay_cdf <- get_notification_delay_cdf(linelist_raw)
@@ -4926,7 +4926,7 @@ reff_model_data <- function(
   # truncate mobility data to no later than the day before the linelist (needed
   # for modelling on historic linelists) and then get the most recent date
   latest_mobility_date <- mobility_data %>%
-    filter(date < linelist_date) %>%
+    #filter(date < linelist_date) %>%
     pull(date) %>%
     max()
   
@@ -8060,7 +8060,8 @@ predict_mobility_trend <- function(
     #     state = "VIC"
     #   )
     # ) %>% # this code now superceded by end_dates = TRUE
-    filter(date <= max_data_date) %>%
+  filter(date != as.Date("2021-06-25"))  %>% # this is NSW lockdown date
+  filter(date <= max_data_date) %>%
     mutate(
       intervention_id = paste0(
         "intervention_",
@@ -8106,6 +8107,26 @@ predict_mobility_trend <- function(
       dow = as.character(dow)
     ) %>%
     filter(!is.na(trend))
+  
+  # add hacky NSW lockdown effect
+  if(mobility$state[1] == "NSW"){
+    df <- df %>%
+      mutate(
+        # half reversion
+        nsw_lockdown = case_when(
+          date >= as.Date("2021-06-25") & date <= as.Date("2021-07-09") ~ 1,
+          date > as.Date("2021-07-10") ~ 0.5,
+          TRUE ~ 0
+        )
+      )
+    
+  } else{
+    df <- df %>%
+      mutate(
+      nsw_lockdown = 0
+      )
+  }
+  
 
   library(mgcv)
   
@@ -8116,6 +8137,9 @@ predict_mobility_trend <- function(
              
              # step changes around intervention impositions
              intervention_stage +
+             
+             # step change for NSW June-July 2021 lockdown
+             nsw_lockdown +
              
              # random effect on holidays (different for each holiday, but shrunk
              # to an average holiday effect which used to predict into future)
@@ -8180,6 +8204,25 @@ predict_mobility_trend <- function(
       date_num = pmax(date_num, min_data_date - min_date),
       date_num = pmin(date_num, max_data_date - min_date)
     )
+  
+  if(mobility$state[1] == "NSW"){
+    pred_df <- pred_df %>%
+      mutate(
+        # half reversion
+        nsw_lockdown = case_when(
+          date >= as.Date("2021-06-25") & date <= as.Date("2021-07-09") ~ 1,
+          date > as.Date("2021-07-10") ~ 0.5,
+          TRUE ~ 0
+        )
+      )
+    
+  } else{
+    pred_df <- pred_df %>%
+      mutate(
+        nsw_lockdown = 0
+      )
+  }
+  
   
   # predict trends under these conditions, and average over day of the week
   pred_df <- pred_df %>%

@@ -1,5 +1,6 @@
 source("R/lib.R")
 
+Sys.setenv(RETICULATE_AUTOCONFIGURE = FALSE)
 library(readr)
 library(dplyr)
 library(stringr)
@@ -525,7 +526,7 @@ interventions <- function(
     #   bind_rows(
     #     tibble::tribble(
     #       ~date, ~state,
-    #       #"2021-07-03", "NSW"
+    #       #"2021-07-17", "NSW" # https://www.abc.net.au/news/2021-07-07/covid-live-updates-coronavirus-press-conference-sydney-lockdown/100270832?utm_campaign=abc_news_web&utm_content=link&utm_medium=content_shared&utm_source=abc_news_web#live-blog-post-1201975138
     #     )
     #   )
     
@@ -1519,7 +1520,7 @@ plot_trend <- function(
   base_colour = grey(0.4),
   multistate = FALSE,
   hline_at = 1,
-  ylim = c(0, 5),
+  ylim = c(0, 6),
   intervention_at = interventions(),
   projection_at = NA,
   keep_only_rows = NULL,
@@ -1528,9 +1529,12 @@ plot_trend <- function(
   plot_voc = FALSE
 ) {
   
+  if(is.na(min_date)){
+    min_date <- max_date - months(6)
+  }
   
   mean <- colMeans(simulations)
-  ci_90 <- apply(simulations, 2, quantile, c(0.05, 0.95))
+  ci_90 <- apply(simulations, 2, quantile, c(0.05, 0.95)) 
   ci_50 <- apply(simulations, 2, quantile, c(0.25, 0.75))
   
   if (multistate) {
@@ -1560,9 +1564,33 @@ plot_trend <- function(
     ) %>%
     mutate(type = "Nowcast")
   
+  
+  date_breaks <- ifelse(
+    length(unique(df$date)) < 200,
+    "1 month",
+    "2 month"
+  )
+  
+  date_minor_breaks <- ifelse(
+    length(unique(df$date)) < 200,
+    "2 weeks",
+    "1 month"
+  )
+  
+  range(ylim)[2] - range(ylim)[1]
+  
+  x_text_size <- ifelse(length(unique(df$date)) < 200, 10, 9)
+  
+  
   if (is.null(ylim)) {
     ylim <- c(min(df$ci_90_lo), max(df$ci_90_hi)) 
   }
+  
+  if(range(ylim)[2] - range(ylim)[1] >= 4 & range(ylim)[2] - range(ylim)[1] <= 10){
+    y_scale <- scale_y_continuous(position = "right", breaks = seq(from = ylim[1], to = ylim[2], by = 1))
+  } else(
+    y_scale <- scale_y_continuous(position = "right")
+  )
   
   p <- ggplot(df) + 
     
@@ -1571,8 +1599,8 @@ plot_trend <- function(
     xlab(element_blank()) +
     
     coord_cartesian(ylim = ylim) +
-    scale_y_continuous(position = "right") +
-    scale_x_date(date_breaks = "1 month", date_labels = "%e/%m") +
+    y_scale +
+    scale_x_date(date_breaks = date_breaks, date_minor_breaks = date_minor_breaks, date_labels = "%e/%m") +
     scale_alpha(range = c(0, 0.5)) +
     scale_fill_manual(values = c("Nowcast" = base_colour)) +
     
@@ -1605,12 +1633,13 @@ plot_trend <- function(
           strip.text = element_text(hjust = 0, face = "bold"),
           axis.title.y.right = element_text(vjust = 0.5, angle = 90),
           panel.spacing = unit(1.2, "lines"),
-          axis.text.x = element_text(size = 7))
+          axis.text.x = element_text(size = x_text_size))
   
   if(plot_voc){
     p <- p + 
       geom_vline(
-        data = prop_voc_date_state(),
+        #data = prop_voc_date_state(),
+        data = prop_variant_dates(),
         aes(xintercept = date),
         colour = "firebrick1",
         linetype = 5
@@ -2343,78 +2372,196 @@ social_distancing_national <- function(dates, n_extra = 0) {
 }
 
 
-prop_voc_date_state <- function() {
+# prop_voc_date_state <- function() {
+#   tibble::tribble(
+#     ~state,        ~date, ~prop_voc,
+#      "ACT", "2021-01-27",         1,
+#      "NSW", "2021-01-27",         1,
+#       "NT", "2021-01-27",         1,
+#      "QLD", "2021-01-27",         1,
+#       "SA", "2021-01-27",         1,
+#      "TAS", "2021-01-27",         1,
+#      "VIC", "2021-01-27",         1,
+#       "WA", "2021-01-27",         1
+#   ) %>%
+#     mutate(
+#       date = as.Date(date)
+#     )
+# }
+# 
+# prop_voc_date_state_long <- function(dates) {
+#   
+#   df <- expand_grid(
+#     date = dates,
+#     state = c("ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA")
+#   ) %>%
+#     full_join(
+#       prop_voc_date_state()
+#     )%>%
+#     pivot_wider(
+#       names_from = state,
+#       values_from = prop_voc
+#     ) %>%
+#     dplyr::select(-date) %>%
+#     as.matrix
+#   
+#   
+#   df[1,] <- apply(
+#     X = df[1,] %>% as.matrix,
+#     MARGIN = 2,
+#     FUN = function(x){
+#       ifelse(is.na(x), 0, x)
+#     }
+#   ) %>%
+#     t
+#   
+#   df <- df %>%
+#     as_tibble %>%
+#     fill(everything()) %>%
+#     as.matrix
+#   
+#   
+#   return(df)
+# }
+
+prop_variant_dates <- function(){
   tibble::tribble(
-    ~state,        ~date, ~prop_voc,
-     "ACT", "2021-01-27",         1,
-     "NSW", "2021-01-27",         1,
-      "NT", "2021-01-27",         1,
-     "QLD", "2021-01-27",         1,
-      "SA", "2021-01-27",         1,
-     "TAS", "2021-01-27",         1,
-     "VIC", "2021-01-27",         1,
-      "WA", "2021-01-27",         1
+    ~state,        ~date, ~prop_wt, ~prop_alpha, ~prop_delta,
+    "ACT",  "2020-01-01",        1,           0,          0,
+    "NSW",  "2020-01-01",        1,           0,          0,
+    "NT",   "2020-01-01",        1,           0,          0,
+    "QLD",  "2020-01-01",        1,           0,          0,
+    "SA",   "2020-01-01",        1,           0,          0,
+    "TAS",  "2020-01-01",        1,           0,          0,
+    "VIC",  "2020-01-01",        1,           0,          0,
+    "WA",   "2020-01-01",        1,           0,          0,
+    
+    "ACT",  "2021-01-27",        0,           1,          0,
+    "NSW",  "2021-01-27",        0,           1,          0,
+    "NT",   "2021-01-27",        0,           1,          0,
+    "QLD",  "2021-01-27",        0,           1,          0,
+    "SA",   "2021-01-27",        0,           1,          0,
+    "TAS",  "2021-01-27",        0,           1,          0,
+    "VIC",  "2021-01-27",        0,           1,          0,
+    "WA",   "2021-01-27",        0,           1,          0,
+    
+    "ACT",  "2021-06-07",        0,           0,          1,
+    "NSW",  "2021-06-07",        0,           0,          1,
+    "NT",   "2021-06-07",        0,           0,          1,
+    "QLD",  "2021-06-07",        0,           0,          1,
+    "SA",   "2021-06-07",        0,           0,          1,
+    "TAS",  "2021-06-07",        0,           0,          1,
+    "VIC",  "2021-06-07",        0,           0,          1,
+    "WA",   "2021-06-07",        0,           0,          1
   ) %>%
     mutate(
       date = as.Date(date)
     )
 }
 
-prop_voc_date_state_long <- function(dates) {
+prop_variant <- function(dates){
   
-  df <- expand_grid(
-    date = dates,
-    state = c("ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA")
-  ) %>%
+  df <-  prop_variant_dates() %>%
     full_join(
-      prop_voc_date_state()
-    )%>%
+      y = expand_grid(
+        date = dates,
+        state = c("ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA")
+      )
+    ) %>%
+    arrange(state, date) %>%
+    tidyr::fill(everything()) %>%
+    filter(date %in% dates) # account for "2020-01-01" start date may not be in dates
+    
+  prop_wt <- df %>%
+    dplyr::select(state, date, prop_wt) %>%
     pivot_wider(
       names_from = state,
-      values_from = prop_voc
+      values_from = prop_wt
     ) %>%
-    dplyr::select(-date) %>%
+    arrange(date) %>%
+    dplyr::select(-date)%>%
     as.matrix
   
-  
-  df[1,] <- apply(
-    X = df[1,] %>% as.matrix,
-    MARGIN = 2,
-    FUN = function(x){
-      ifelse(is.na(x), 0, x)
-    }
-  ) %>%
-    t
-  
-  df <- df %>%
-    as_tibble %>%
-    fill(everything()) %>%
+  prop_alpha <- df %>%
+    dplyr::select(state, date, prop_alpha) %>%
+    pivot_wider(
+      names_from = state,
+      values_from = prop_alpha
+    ) %>%
+    arrange(date) %>%
+    dplyr::select(-date)%>%
     as.matrix
   
+  prop_delta <- df %>%
+    dplyr::select(state, date, prop_delta) %>%
+    pivot_wider(
+      names_from = state,
+      values_from = prop_delta
+    ) %>%
+    arrange(date) %>%
+    dplyr::select(-date)%>%
+    as.matrix
   
-  return(df)
+  prop_variant <- list(
+    "prop_wt"    = prop_wt,
+    "prop_alpha" = prop_alpha,
+    "prop_delta" = prop_delta
+  )
+  
+  return(prop_variant)
 }
 
 
 # greta sub-model for the component R_eff due to macro- and micro-distancing
-distancing_effect_model <- function(dates, gi_cdf) {
+distancing_effect_model <- function(
+  dates,
+  gi_cdf,
+  voc_mixture = c("all", "alpha", "delta", "wt")
+) {
+  
+  voc_mixture <- match.arg(voc_mixture)
   
   # informative priors on variables for contacts at t = 0 (Hx = household, Ox =
   # non-household, Tx = total, xC = contacts. xD = duration)
   baseline_contact_params <- baseline_contact_parameters(gi_cdf)
   
-  prop_voc <- prop_voc_date_state_long(dates = dates)
+  
+  prop_var <- prop_variant(dates = dates)
+  prop_alpha <- prop_var$prop_alpha
+  prop_delta <- prop_var$prop_delta
+  prop_wt    <- prop_var$prop_wt
+  
+  if(voc_mixture == "alpha") {
+    prop_alpha <- prop_alpha * 0 + 1
+    prop_delta <- prop_wt <- prop_delta * 0
+  }
+  
+  if(voc_mixture == "delta") {
+    prop_delta <- prop_delta * 0 + 1
+    prop_alpha <- prop_wt <- prop_alpha * 0
+  }
+  
+  if(voc_mixture == "wt") {
+    prop_wt <- prop_wt * 0 + 1
+    prop_alpha <- prop_alpha * 0 
+    prop_delta <- prop_delta * 0
+  }
+  
   
   # prior on the probability of *not* transmitting, per hour of contact
   # (define to match moments of R0 prior)
   logit_p_params <- logit_p_prior(baseline_contact_params, gi_cdf)
   logit_p <- normal(logit_p_params$meanlogit, logit_p_params$sdlogit)
-  p_wildt <- ilogit(logit_p)
-  phi <- normal(1.454, 0.055, truncation = c(0, Inf))
-  #phi <- 1.454
-  #phi <- 1
-  phi_wt <- 1 - prop_voc + prop_voc*phi
-  p <- (p_wildt) ^ phi_wt
+  p <- ilogit(logit_p)
+  
+  phi_alpha       <- normal(1.454, 0.055, truncation = c(0, Inf))
+  phi_delta_alpha <- normal(1.421, 0.033, truncation = c(0, Inf))
+  
+  phi_delta <- phi_alpha * phi_delta_alpha
+  
+  phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta
+
+  p_star <- p ^ phi_star
   
   
   infectious_days <- infectious_period(gi_cdf)
@@ -2455,9 +2602,9 @@ distancing_effect_model <- function(dates, gi_cdf) {
   gamma_t_state <- 1 - beta * d_t_state
   
   # compute component of R_eff for local cases
-  household_infections <- HC_0 * (1 - p ^ HD_t)
+  household_infections <- HC_0 * (1 - p_star ^ HD_t)
   non_household_infections <- OC_t_state * gamma_t_state *
-    infectious_days * (1 - p ^ OD_0)
+    infectious_days * (1 - p_star ^ OD_0)
   R_t <- household_infections + non_household_infections
   
   # return greta arrays
@@ -2465,14 +2612,17 @@ distancing_effect_model <- function(dates, gi_cdf) {
        gamma_t_state = gamma_t_state,
        OC_t_state = OC_t_state,
        p = p,
+       p_star = p_star,
        beta = beta,
        HC_0 = HC_0,
        HD_0 = HD_0,
        OC_0 = OC_0,
        OD_0 = OD_0,
        dates = dates,
-       phi = phi,
-       phi_wt = phi_wt)
+       phi_alpha = phi_alpha,
+       phi_delta_alpha = phi_delta_alpha,
+       phi_delta = phi_delta,
+       phi_star = phi_star)
   
 }
 
@@ -3899,6 +4049,7 @@ surveillance_effect <- function(dates, states, cdf,
   
 }
 
+
 # get the mean date of symptom onset give a date of detection (using the
 # time-varying time to detection distribution)
 impute_one_onset <- function(confirmation_date,
@@ -4031,11 +4182,14 @@ lga_to_state <- function (lga) {
   
 }
 
-linelist_date_times <- function(dir) {
+linelist_date_times <- function(
+  dir,
+  name_pattern = "^COVID-19 UoM "
+) {
   # find the files
   files <- list.files(dir, pattern = ".xlsx$", full.names = TRUE)
   # pull out the date time stamp
-  date_time_text <- gsub("^COVID-19 UoM ", "", basename(files)) 
+  date_time_text <- gsub(name_pattern, "", basename(files)) 
   date_time_text <- gsub(".xlsx$", "", date_time_text)
   date_times <- as.POSIXct(date_time_text, format = "%d%b%Y %H%M")
   # return as a dataframe
@@ -5126,8 +5280,8 @@ reff_1_only_macro <- function(fitted_model) {
   infectious_days <- infectious_period(gi_cdf)
   h_t <- h_t_state(fitted_model$data$dates$mobility)
   HD_t <- de$HD_0 * h_t
-  household_infections_macro <- de$HC_0 * (1 - de$p ^ HD_t)
-  non_household_infections_macro <- de$OC_t_state * infectious_days * (1 - de$p ^ de$OD_0)
+  household_infections_macro <- de$HC_0 * (1 - de$p_star ^ HD_t)
+  non_household_infections_macro <- de$OC_t_state * infectious_days * (1 - de$p_star ^ de$OD_0)
   hourly_infections_macro <- household_infections_macro + non_household_infections_macro
   hourly_infections_macro_extended <- extend(
     hourly_infections_macro,
@@ -5142,9 +5296,9 @@ reff_1_only_micro <- function(fitted_model) {
   baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
   de <- ga$distancing_effect
   infectious_days <- infectious_period(gi_cdf)
-  household_infections_micro <- de$HC_0 * (1 - de$p ^ de$HD_0)
+  household_infections_micro <- de$HC_0 * (1 - de$p_star ^ de$HD_0)
   non_household_infections_micro <- de$OC_0 * infectious_days *
-    (1 - de$p ^ de$OD_0) * de$gamma_t_state
+    (1 - de$p_star ^ de$OD_0) * de$gamma_t_state
   hourly_infections_micro <- household_infections_micro +
     non_household_infections_micro
   hourly_infections_micro_extended <- extend(
@@ -5177,9 +5331,9 @@ reff_1_vaccine_effect <- function(fitted_model, timeseries){
   baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
   de <- ga$distancing_effect
   infectious_days <- infectious_period(gi_cdf)
-  household_infections_vacc <- de$HC_0 * (1 - de$p ^ de$HD_0)
+  household_infections_vacc <- de$HC_0 * (1 - de$p_star ^ de$HD_0)
   non_household_infections_vacc <- de$OC_0 * infectious_days *
-    (1 - de$p ^ de$OD_0)
+    (1 - de$p_star ^ de$OD_0)
   hourly_infections_vacc <- household_infections_vacc +
     non_household_infections_vacc
   hourly_infections_vacc_extended <- extend(
@@ -5263,13 +5417,19 @@ constrain_run_length <- function(x, min_run_length = 7) {
 reff_plotting <- function(
   fitted_model,
   dir = "outputs",
+  subdir = "figures",
   min_date = as.Date("2020-03-01"),
+  #min_date = NA,
   max_date = fitted_model$data$dates$latest_mobility,
   mobility_extrapolation_rectangle = TRUE,
   projection_date = NA,
   washout_cutoff = 0,
   vaccine_timeseries = timeseries
 ) {
+  
+  if(is.na(min_date)){
+    min_date <- max_date - months(6)
+  }
   
   # reformat case data for plotting (C1 and C12)
   local_cases_long <- fitted_model$data$local$cases %>%
@@ -5386,7 +5546,7 @@ reff_plotting <- function(
              multistate = FALSE,
              base_colour = fifo,
              projection_at = projection_date,
-             ylim = c(0, 5),
+             ylim = c(0, 6),
              intervention_at = vaccination_dates(),
              plot_voc = TRUE
   ) + 
@@ -5394,7 +5554,7 @@ reff_plotting <- function(
             subtitle = expression(R["eff"]~"if"~only~vaccination~had~occurred)) +
     ylab(expression(R["eff"]~component))
   
-  save_ggplot("R_eff_1_local_vaccine_effect.png", dir, multi = FALSE)
+  save_ggplot("R_eff_1_local_vaccine_effect.png", dir, subdir, multi = FALSE)
   
   
   # microdistancing only
@@ -5410,7 +5570,7 @@ reff_plotting <- function(
             subtitle = expression(R["eff"]~"if"~only~"micro-distancing"~behaviour~had~changed)) +
     ylab(expression(R["eff"]~component))
   
-  save_ggplot("R_eff_1_local_micro.png", dir)
+  save_ggplot("R_eff_1_local_micro.png", dir, subdir)
   
   # macrodistancing only
   plot_trend(sims$R_eff_loc_1_macro,
@@ -5425,7 +5585,7 @@ reff_plotting <- function(
             subtitle = expression(R["eff"]~"if"~only~"macro-distancing"~behaviour~had~changed)) +
     ylab(expression(R["eff"]~component))
   
-  save_ggplot("R_eff_1_local_macro.png", dir)
+  save_ggplot("R_eff_1_local_macro.png", dir, subdir)
   
   # improved surveilance only
   plot_trend(sims$R_eff_loc_1_surv,
@@ -5439,7 +5599,7 @@ reff_plotting <- function(
             subtitle = expression(R["eff"]~"if"~only~surveillance~effectiveness~had~changed)) +
     ylab(expression(R["eff"]~component))
   
-  save_ggplot("R_eff_1_local_surv.png", dir)
+  save_ggplot("R_eff_1_local_surv.png", dir, subdir)
   
   # Component 1 for national / state populations
   plot_trend(sims$R_eff_loc_1,
@@ -5454,7 +5614,7 @@ reff_plotting <- function(
             subtitle = expression(Component~of~R["eff"]~due~to~social~distancing)) +
     ylab(expression(R["eff"]~component))
   
-  save_ggplot("R_eff_1_local.png", dir)
+  save_ggplot("R_eff_1_local.png", dir, subdir)
   
   plot_trend(sims$R_eff_imp_1,
              data = fitted_model_extended$data,
@@ -5470,7 +5630,7 @@ reff_plotting <- function(
             subtitle = expression(Component~of~R["eff"]~due~to~quarantine~of~overseas~arrivals)) +
     ylab(expression(R["eff"]~component))
   
-  save_ggplot("R_eff_1_import.png", dir, multi = FALSE)
+  save_ggplot("R_eff_1_import.png", dir, subdir, multi = FALSE)
   
   # Reff for active cases
   p <- plot_trend(sims$R_eff_loc_12,
@@ -5479,7 +5639,7 @@ reff_plotting <- function(
                   max_date = max_date,
                   multistate = TRUE,
                   base_colour = green,
-                  ylim = c(0, 5),
+                  ylim = c(0, 6),
                   projection_at = projection_date,
                   plot_voc = TRUE) +
     ggtitle(label = "Local to local transmission potential",
@@ -5500,7 +5660,7 @@ reff_plotting <- function(
   p <- p + few_case_washout + case_rug
   p
   
-  save_ggplot("R_eff_12_local.png", dir)
+  save_ggplot("R_eff_12_local.png", dir, subdir)
   
   # component 2 (noisy error trends)
   p <- plot_trend(sims$epsilon_L,
@@ -5532,7 +5692,7 @@ reff_plotting <- function(
   
   p
   
-  save_ggplot("R_eff_2_local.png", dir)
+  save_ggplot("R_eff_2_local.png", dir, subdir)
   
 }
 
@@ -7725,6 +7885,7 @@ plot_delays <- function(
   base_colour = yellow
 ) {
   
+
   # mutate to output quantiles and then plot them
   quantiles <- delay_distributions %>%
     # plot it as the date of infection, not date of onset!
@@ -8912,119 +9073,68 @@ extract_over_70_ifr_effect <- function(x, which = c("odriscoll", "brazeau")) {
   sum(age_effects * weighting)
 }
 
-simulate_wild_type <- function(
+
+simulate_variant <- function(
   .fitted_model = fitted_model,
-  dir = "outputs/projection/wild_type",
-  ratio_samples = TRUE
+  dir = "outputs/projection/",
+  subdir = NA,
+  ratio_samples = FALSE,
+  variant = c("wt", "alpha", "delta")
 ){
   
-  phi_alpha_wt <- normal(1.454, 0.055, truncation = c(0, Inf))
+  variant <- match.arg(variant)
   
+  if(is.na(subdir)){
+    subdir <- variant
+  }
+ 
   data <- .fitted_model$data
   dates <- .fitted_model$data$dates$mobility
   
   de <- .fitted_model$greta_arrays$distancing_effect
   
-  prop_voc <- prop_voc_date_state_long(dates)
+  p_star <- de$p
   
-  p <- de$p
-  phi_wt_star <- 1 - prop_voc + prop_voc*phi_alpha_wt
-  p_star <- p ^ (1/phi_wt_star)
+  prop_var <- prop_variant(dates = dates)
+  prop_alpha <- prop_var$prop_alpha
+  prop_delta <- prop_var$prop_delta
+  prop_wt    <- prop_var$prop_wt
   
-  infectious_days <- infectious_period(gi_cdf)
-  
-  h_t <- h_t_state(dates)
-  HD_t <- de$HD_0 * h_t
-  
-  household_infections <- de$HC_0 * (1 - p_star ^ HD_t)
-  non_household_infections <- de$OC_t_state * de$gamma_t_state *
-    infectious_days * (1 - p_star ^ de$OD_0)
-  R_t <- household_infections + non_household_infections
-  R_eff_loc_1_no_surv <- extend(R_t, data$n_dates_project)
-  
-  
-  # multiply by the surveillance effect to get component 1
-  surveillance_reff_local_reduction <- surveillance_effect(
-    dates = data$dates$infection_project,
-    cdf = gi_cdf,
-    states = data$states
-  )
-  # 
-  
-  wt_fitted_model <- .fitted_model
-  wt_fitted_model$greta_arrays$R_eff_loc_1 <- R_eff_loc_1_no_surv * surveillance_reff_local_reduction
-  
-  
-  dir.create(dir, showWarnings = FALSE)
-  write_reff_sims(wt_fitted_model, dir, write_reff_12 = FALSE)
-  
-  if(ratio_samples) {
-    ratio <- wt_fitted_model$greta_arrays$R_eff_loc_1 / .fitted_model$greta_arrays$R_eff_loc_1
-    ratio_vec <- c(ratio)
-    ratio_sims <- calculate(ratio_vec, values = .fitted_model$draws, nsim = 2000)
-    ratio_samples <- t(ratio_sims[[1]][, , 1])
-    colnames(ratio_samples) <- paste0("sim", 1:2000)
-    
-    tibble(
-      date = rep(.fitted_model$data$dates$infection_project, .fitted_model$data$n_states),
-      state = rep(.fitted_model$data$states, each = .fitted_model$data$n_dates_project),
-    ) %>%
-      mutate(date_onset = date + 5) %>%
-      cbind(ratio_samples) %>%
-      write_csv(
-        file.path(dir, "r_eff_1_ratio_samples.csv")
-      )
-    
-    # read_csv("outputs/projection/wild_type/r_eff_1_local_samples.csv") %>%
-    #   filter(date == as.Date("2020-04-11")) %>%
-    #   pivot_longer(
-    #     cols = starts_with("sim"),
-    #     names_to = "sim"
-    #   ) %>%
-    #   group_by(state, date) %>%
-    #   summarise(
-    #     mean = mean(value),
-    #     median = median(value),
-    #     lower = quantile(value, 0.05),
-    #     upper = quantile(value, 0.95),
-    #     p_exceedance = mean(value > 1)
-    #   )
-  }
-  
-}
-
-simulate_delta <- function(
-  .fitted_model = fitted_model,
-  dir = "outputs/projection/delta",
-  ratio_samples = TRUE
-){
-  
-  phi_alpha_wt <- normal(1.454, 0.055, truncation = c(0, Inf))
+  phi_alpha       <- normal(1.454, 0.055, truncation = c(0, Inf))
   phi_delta_alpha <- normal(1.421, 0.033, truncation = c(0, Inf))
   
-  phi_delta_wt <- phi_alpha_wt * phi_delta_alpha
+  phi_delta <- phi_alpha * phi_delta_alpha
   
-  data <- .fitted_model$data
-  dates <- .fitted_model$data$dates$mobility
+  phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta
   
-  de <- .fitted_model$greta_arrays$distancing_effect
+  p <- p_star ^ (1/phi_star)
   
-  prop_voc <- prop_voc_date_state_long(dates)
+  if(variant == "wt") {
+    prop_wt_hat    <- prop_wt    * 0 + 1
+    prop_alpha_hat <- prop_alpha * 0 
+    prop_delta_hat <- prop_delta * 0
+  }else if(variant == "alpha") {
+    prop_wt_hat    <- prop_wt    * 0
+    prop_alpha_hat <- prop_alpha * 0 + 1
+    prop_delta_hat <- prop_delta * 0
+  } else if(variant == "delta") {
+    prop_wt_hat    <- prop_wt    * 0
+    prop_alpha_hat <- prop_alpha * 0
+    prop_delta_hat <- prop_delta * 0 + 1
+  } 
   
-  p <- de$p
-  phi_wt_star <- 1 - prop_voc + prop_voc*phi_alpha_wt
-  p_star <- p ^ (1/phi_wt_star)
+  phi_hat <- prop_wt_hat * 1 + prop_alpha_hat * phi_alpha + prop_delta_hat * phi_delta
   
-  p_delta <- p_star ^ phi_delta_wt
+  p_hat <- p ^ phi_hat
   
   infectious_days <- infectious_period(gi_cdf)
   
   h_t <- h_t_state(dates)
   HD_t <- de$HD_0 * h_t
   
-  household_infections <- de$HC_0 * (1 - p_delta ^ HD_t)
+  household_infections <- de$HC_0 * (1 - p_hat ^ HD_t)
   non_household_infections <- de$OC_t_state * de$gamma_t_state *
-    infectious_days * (1 - p_delta ^ de$OD_0)
+    infectious_days * (1 - p_hat ^ de$OD_0)
   R_t <- household_infections + non_household_infections
   R_eff_loc_1_no_surv <- extend(R_t, data$n_dates_project)
   
@@ -9042,7 +9152,7 @@ simulate_delta <- function(
   
   
   dir.create(dir, showWarnings = FALSE)
-  write_reff_sims(wt_fitted_model, dir, write_reff_12 = FALSE)
+  write_reff_sims(wt_fitted_model, paste(dir, subdir, sep = "/"), write_reff_12 = FALSE)
   
   if(ratio_samples) {
     ratio <- wt_fitted_model$greta_arrays$R_eff_loc_1 / .fitted_model$greta_arrays$R_eff_loc_1
@@ -9078,8 +9188,6 @@ simulate_delta <- function(
   }
   
 }
-
-
 
 # given a timeseries of cumulative doses (for contiguous consecutive dates), and
 # an assumed ideal inter-dose period, return the timeseries of the cumulative
@@ -9144,4 +9252,59 @@ vaccination_coverage <- function() {
       proportion_2_dose = fully_vaccinated / vaccinated
     )
   
+}
+
+
+hist_prior_posterior <- function(greta_array, draws, nsim = 1000, ...)  {
+  
+  prior_sim <- calculate(greta_array, nsim = nsim)[[1]]
+  posterior_sim <- calculate(greta_array, values = draws, nsim = nsim)[[1]]
+  
+  prior_sim <- c(prior_sim)
+  posterior_sim <- c(posterior_sim)
+  xlim <- range(c(prior_sim, posterior_sim))
+  
+  op <- par()
+  on.exit(par(op))
+  par(mfrow = c(1, 2))
+  
+  hist(c(prior_sim), xlim = xlim, main = "Prior", ...)
+  hist(c(posterior_sim), xlim = xlim, main = "Posterior", ...)
+  
+}
+
+read_reff_samples <- function(
+  sample.file
+){
+  
+  read.csv(sample.file) %>%
+    as_tibble %>%
+    pivot_longer(
+      cols = starts_with("sim"),
+      values_to = "value",
+      names_to = "name"
+    )  %>%
+    group_by(date, state) %>%
+    summarise(
+      med = median(value),
+      lw5 = quantile(value, 0.05),
+      up95 = quantile(value, 0.95),
+      lw25 = quantile(value, 0.25),
+      up75 = quantile(value, 0.75)
+    ) %>%
+    ungroup %>%
+    mutate(date = as.Date(as.character(date)))
+}
+
+
+write_mobility_dates <- function(mobility, dir = "outputs/"){
+  mobility %>%
+    group_by(datastream) %>%
+    summarise(
+      latest = max(date),
+      earliest = min(date)
+    ) %>%
+    write_csv(
+      file = file.path(dir, 'mobility_dates.csv')
+    )
 }

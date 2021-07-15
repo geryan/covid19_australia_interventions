@@ -3,11 +3,16 @@ source("R/lib.R")
 source("R/functions.R")
 
 # load, cache, and format the mobility data
-# mobility <- all_mobility() %>%
-#   append_google_data()
-#   
-# saveRDS(mobility, file = "outputs/cached_mobility.RDS")
-mobility <- readRDS("outputs/cached_mobility.RDS")
+
+
+mobility <- all_mobility() %>%
+  append_google_data()
+
+write_mobility_dates(mobility)
+  
+saveRDS(mobility, file = "outputs/cached_mobility.RDS")
+# mobility <- readRDS("outputs/cached_mobility.RDS")
+
 
 n_weeks_ahead <- 6
 first_date <- min(mobility$date)

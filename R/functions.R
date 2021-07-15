@@ -8060,7 +8060,7 @@ predict_mobility_trend <- function(
     #     state = "VIC"
     #   )
     # ) %>% # this code now superceded by end_dates = TRUE
-  filter(date != as.Date("2021-06-25"))  %>% # this is NSW lockdown date
+  #filter(date != as.Date("2021-06-25"))  %>% # this is NSW lockdown date
   filter(date <= max_data_date) %>%
     mutate(
       intervention_id = paste0(
@@ -8139,7 +8139,7 @@ predict_mobility_trend <- function(
              intervention_stage +
              
              # step change for NSW June-July 2021 lockdown
-             nsw_lockdown +
+             # nsw_lockdown +
              
              # random effect on holidays (different for each holiday, but shrunk
              # to an average holiday effect which used to predict into future)
@@ -8208,12 +8208,12 @@ predict_mobility_trend <- function(
   if(mobility$state[1] == "NSW"){
     pred_df <- pred_df %>%
       mutate(
-        # half reversion
-        nsw_lockdown = case_when(
-          date >= as.Date("2021-06-25") & date <= as.Date("2021-07-09") ~ 1,
-          date > as.Date("2021-07-10") ~ 0.5,
-          TRUE ~ 0
-        )
+        # # half reversion
+        # nsw_lockdown = case_when(
+        #   date >= as.Date("2021-06-25") & date <= as.Date("2021-07-09") ~ 1,
+        #   date > as.Date("2021-07-10") ~ 0.5,
+        #   TRUE ~ 0
+        # )
       )
     
   } else{

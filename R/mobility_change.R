@@ -5,13 +5,13 @@ source("R/functions.R")
 # load, cache, and format the mobility data
 
 
-mobility <- all_mobility() %>%
-  append_google_data()
-
-write_mobility_dates(mobility)
-  
-saveRDS(mobility, file = "outputs/cached_mobility.RDS")
-# mobility <- readRDS("outputs/cached_mobility.RDS")
+# mobility <- all_mobility() %>%
+#   append_google_data()
+# 
+# write_mobility_dates(mobility)
+#   
+# saveRDS(mobility, file = "outputs/cached_mobility.RDS")
+mobility <- readRDS("outputs/cached_mobility.RDS")
 
 
 n_weeks_ahead <- 6
@@ -40,6 +40,32 @@ mobility_fitted <- mobility %>%
   ungroup()
 
 all_states <- na.omit(unique(mobility_fitted$state_long))
+
+vic_stage_4 <- mobility_fitted %>%
+  filter(
+    state == "VIC",
+    date == "2020-08-23"
+  ) %>%
+  dplyr::select(datastream, predicted_trend)
+
+
+nsw_increased_lockdown <- mobility_fitted %>%
+  filter(
+    state == "NSW",
+    date >= "2021-07-18"
+  ) %>%
+  dplyr::select(-predicted_trend) %>%
+  full_join(
+    vic_stage_4,
+    by = "datastream"
+  ) %>%
+  dplyr::select(names(mobility_fitted))
+
+mobility_fitted <- mobility_fitted %>%
+  filter(!(
+    state == "NSW" & date >= "2021-07-18"
+  )) %>%
+  bind_rows(nsw_increased_lockdown)
 
 for (this_state in all_states) {
 

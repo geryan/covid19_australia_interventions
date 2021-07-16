@@ -56,6 +56,16 @@ reff_plotting(fitted_model,
               projection_date = as.Date("2021-07-14"))
 
 
+reff_plotting(
+  fitted_model,
+  dir = "outputs/nsw_half/projection",
+  subdir = "figures/six_month",
+  min_date = NA,
+  max_date = fitted_model$data$dates$latest_project,
+  mobility_extrapolation_rectangle = FALSE,
+  projection_date = as.Date("2021-07-14")
+)
+
 # produce simulations where proportion VOC is zero throughout period for reporting
 # in common operating picture table
 

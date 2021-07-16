@@ -49,6 +49,31 @@ vic_stage_4 <- mobility_fitted %>%
   dplyr::select(datastream, predicted_trend)
 
 
+mobility_change_comparison <- mobility_fitted %>%
+  filter(
+    state == "NSW",
+    date == "2021-07-18"
+  ) %>%
+  dplyr::select(datastream, predicted_trend) %>%
+  rename("nsw_predicted" = predicted_trend) %>%
+  left_join(
+    vic_stage_4 %>%
+      rename("reduced" = predicted_trend)
+  ) %>%
+  mutate(
+    percent_change = reduced/nsw_predicted * 100 - 100
+  )
+
+write_csv(
+  x = mobility_change_comparison,
+  file = "outputs/nsw_half/mobility_change_comparison.csv"
+)
+
+mobility_change_comparison[6:10,] %>%
+  pull(percent_change) %>%
+  mean
+
+
 nsw_increased_lockdown <- mobility_fitted %>%
   filter(
     state == "NSW",

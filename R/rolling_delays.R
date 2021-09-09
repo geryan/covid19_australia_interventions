@@ -2,7 +2,13 @@
 
 source("R/functions.R")
 
-linelist <- load_linelist()
+linelist <- load_linelist(
+  date = "2021-01-25",
+  use_vic = FALSE,
+  use_sa = FALSE,
+  use_nsw = FALSE
+)
+
 linelist_date <- linelist$date_linelist[1]
 
 # get delays for locally-acquired infections, truncated differently for forward/backward delays 

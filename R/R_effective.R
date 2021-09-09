@@ -10,7 +10,14 @@ source("R/functions.R")
 sync_nndss()
 
 # prepare data for Reff modelling
-data <- reff_model_data()
+data <- reff_model_data(
+  linelist_raw = load_linelist(
+    date = "2021-01-25",
+    use_vic = FALSE,
+    use_sa = FALSE,
+    use_nsw = FALSE
+  )
+)
 
 data$dates$linelist
 
@@ -41,10 +48,10 @@ write_reff_sims(fitted_model, dir = "outputs/projection")
 vaccine_effect_timeseries <- readRDS(file = "outputs/vaccine_effect_timeseries.RDS")
 
 # write sims of effect of vaccine on C1
-write_reff_sims_vax(
-  fitted_model,
-  vaccine_timeseries = vaccine_effect_timeseries
-)
+# write_reff_sims_vax(
+#   fitted_model,
+#   vaccine_timeseries = vaccine_effect_timeseries
+# )
 
 # do plots for main period
 reff_plotting(fitted_model, dir = "outputs")
@@ -80,6 +87,6 @@ reff_plotting(
 
 # produce simulations where proportion VOC is zero throughout period for reporting
 # in common operating picture table
-simulate_variant(variant = "wt")
-simulate_variant(variant = "alpha")
-simulate_variant(variant = "delta")
+# simulate_variant(variant = "wt")
+# simulate_variant(variant = "alpha")
+# simulate_variant(variant = "delta")

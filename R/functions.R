@@ -5138,7 +5138,7 @@ reff_model <- function(data) {
   # contacts per 24h (itself modelled from mobility data, calibrated against
   # contact surveys) and the relative transmission probability per contact,
   # inferred from surveys on micro-distancing behaviour.
-  distancing_effect <- distancing_effect_model(data$dates$mobility, gi_cdf)
+  distancing_effect <- distancing_effect_model(data$dates$mobility, gi_cdf, voc_mixture = "wt")
   
   # pull out R_t component due to distancing for locally-acquired cases, and
   # extend to correct length
@@ -5639,7 +5639,7 @@ reff_plotting <- function(
              projection_at = projection_date,
              ylim = c(0, 8),
              intervention_at = interventions(),
-             plot_voc = TRUE,
+             plot_voc = FALSE,
              plot_vax = TRUE
   ) + 
     ggtitle(label = "Impact of vaccination",
@@ -5659,7 +5659,7 @@ reff_plotting <- function(
     intervention_at = interventions(),
     base_colour = green,
     projection_at = projection_date,
-    plot_voc = TRUE,
+    plot_voc = FALSE,
     plot_vax = TRUE
   ) + 
     ggtitle(label = "Impact of social distancing & vaccination",
@@ -5676,7 +5676,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = purple,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of micro-distancing",
             subtitle = expression(R["eff"]~"if"~only~"micro-distancing"~behaviour~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -5691,7 +5691,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = blue,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of macro-distancing",
             subtitle = expression(R["eff"]~"if"~only~"macro-distancing"~behaviour~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -5705,7 +5705,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = yellow,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of improved surveillance",
             subtitle = expression(R["eff"]~"if"~only~surveillance~effectiveness~had~changed)) +
     ylab(expression(R["eff"]~component))
@@ -5720,7 +5720,7 @@ reff_plotting <- function(
              multistate = TRUE,
              base_colour = green,
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of social distancing",
             subtitle = expression(Component~of~R["eff"]~due~to~social~distancing)) +
     ylab(expression(R["eff"]~component))
@@ -5736,7 +5736,7 @@ reff_plotting <- function(
              ylim = c(0, 0.4),
              intervention_at = quarantine_dates(),
              projection_at = projection_date,
-             plot_voc = TRUE) + 
+             plot_voc = FALSE) + 
     ggtitle(label = "Impact of quarantine of overseas arrivals",
             subtitle = expression(Component~of~R["eff"]~due~to~quarantine~of~overseas~arrivals)) +
     ylab(expression(R["eff"]~component))
@@ -5752,7 +5752,7 @@ reff_plotting <- function(
                   base_colour = green,
                   ylim = c(0, 6),
                   projection_at = projection_date,
-                  plot_voc = TRUE) +
+                  plot_voc = FALSE) +
     ggtitle(label = "Local to local transmission potential",
             subtitle = "Average across active cases") +
     ylab(expression(R["eff"]~from~"locally-acquired"~cases))
@@ -5784,7 +5784,7 @@ reff_plotting <- function(
                   projection_at = projection_date,
                   ylim = NULL,
                   ybreaks = c(-2, 1),
-                  plot_voc = TRUE) + 
+                  plot_voc = FALSE) + 
     ggtitle(label = "Short-term variation in local to local transmission rates",
             subtitle = expression(Deviation~from~log(R["eff"])~of~"local-local"~transmission)) +
     ylab("Deviation")

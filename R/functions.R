@@ -1535,7 +1535,7 @@ plot_trend <- function(
   hline_at = 1,
   ylim = c(0, 6),
   ybreaks = NULL,
-  intervention_at = interventions(),
+  intervention_at =  filter(interventions(), date < "2021-01-25"),
   projection_at = NA,
   keep_only_rows = NULL,
   max_date = data$dates$latest_mobility,
@@ -1581,13 +1581,13 @@ plot_trend <- function(
   
   
   date_breaks <- ifelse(
-    length(unique(df$date)) < 200,
+    length(unique(df$date)) < 400,
     "1 month",
     "2 month"
   )
   
   date_minor_breaks <- ifelse(
-    length(unique(df$date)) < 200,
+    length(unique(df$date)) < 400,
     "2 weeks",
     "1 month"
   )
@@ -5626,7 +5626,7 @@ reff_plotting <- function(
   vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types], c)
   
   # simulate from posterior for these quantities of interest
-  args <- c(vector_list, list(values = fitted_model_extended$draws, nsim = 10000))
+  args <- c(vector_list, list(values = fitted_model_extended$draws, nsim = 2000))
   sims <- do.call(calculate, args)
   
   # vaccine effect only
@@ -5638,9 +5638,9 @@ reff_plotting <- function(
              base_colour = fifo,
              projection_at = projection_date,
              ylim = c(0, 8),
-             intervention_at = interventions(),
+             intervention_at = interventions() %>% filter(date < "2021-01-25"),
              plot_voc = FALSE,
-             plot_vax = TRUE
+             plot_vax = FALSE
   ) + 
     ggtitle(label = "Impact of vaccination",
             subtitle = expression(R["eff"]~"if"~only~vaccination~had~occurred)) +
@@ -5656,11 +5656,11 @@ reff_plotting <- function(
     max_date = max_date,
     multistate = TRUE,
     #ylim = c(0, 6),
-    intervention_at = interventions(),
+    intervention_at = interventions() %>% filter(date < "2021-01-25"),
     base_colour = green,
     projection_at = projection_date,
     plot_voc = FALSE,
-    plot_vax = TRUE
+    plot_vax = FALSE
   ) + 
     ggtitle(label = "Impact of social distancing & vaccination",
             subtitle = expression(Component~of~R["eff"]~due~to~social~distancing~and~vaccination)) +

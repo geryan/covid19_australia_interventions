@@ -29,7 +29,7 @@ max_data_date <- max(survey_distance$date)
 
 intervention_steps <- interventions(
   end_dates = TRUE#,
-   #exclude_after = "2021-07-27"
+   #exclude_after = "2021-08-14"
 ) %>%
   filter(date <= max_data_date) %>%
   mutate(
@@ -218,7 +218,13 @@ point_df <- point_df %>%
 module(line_df, point_df) %>%
   saveRDS("outputs/micro_plotting_data.RDS")
 
+aa <- readRDS("outputs/micro_plotting_data.RDS")
 
+line_df <- aa$line_df %>%
+  filter(date < "2021-01-25")
+
+point_df <- aa$point_df %>%
+  filter(date < "2021-01-25")
 
 base_colour <- purple
 
@@ -236,7 +242,8 @@ p <- ggplot(line_df) +
   
   geom_vline(
     aes(xintercept = date),
-    data = interventions(),
+    data = interventions() %>%
+      filter(date < "2021-01-25"),
     colour = "grey80"
   ) +
   

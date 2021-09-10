@@ -68,7 +68,7 @@ fitted_model <- module(
 saveRDS(fitted_model, "outputs/fitted_macro_model.RDS")
 # fitted_model <- readRDS("outputs/fitted_macro_model.RDS")
 
-# # make predictions using updated data on a day out of sync with standard Monday fit
+# make predictions using updated data on a day out of sync with standard Monday fit
 # fitted_model$data <- data
 # fitted_model$predictions <- macrodistancing_model(fitted_model$data, fitted_model$params)
 
@@ -193,6 +193,9 @@ survey_points <- fitted_model$data$contacts %>%
 
 # save these fits for plotting later
 saveRDS(survey_points, "outputs/macro_data_fit.RDS")
+
+survey_points <- readRDS("outputs/macro_data_fit.RDS") %>%
+  filter(wave_date < "2021-01-25")
 
 # get holiday dates and subset to where they overlap with surveys
 holiday_lines <- survey_points %>%

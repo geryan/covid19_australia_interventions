@@ -6386,6 +6386,8 @@ detection_probability_matrix <- function(latest_date, infection_dates, states, n
   onset_dates <- infection_dates + 5
   delays <- latest_date - onset_dates
   
+  delays_act <- latest_date - 3 - onset_dates
+  
   onset_dates_mat <- matrix(
     onset_dates, 
     nrow = n_dates,
@@ -6393,7 +6395,10 @@ detection_probability_matrix <- function(latest_date, infection_dates, states, n
   )
   
   delays_mat <- matrix(
-    delays, 
+    c(
+      delays_act,
+      rep(delays, times = 7)
+    ), 
     nrow = n_dates,
     ncol = n_states
   )

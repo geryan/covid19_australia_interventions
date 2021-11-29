@@ -5437,6 +5437,24 @@ reff_1_only_extra_isolation <- function(fitted_model) {
   exp(log_R0 + log(reduction))
 }
 
+reff_1_only_ttiq <- function(fitted_model) {
+  ga <- fitted_model$greta_arrays
+  log_R0 <- ga$log_R0
+  # extra_iso <- ga$extra_isolation_local_reduction
+  extra_iso <- extra_isolation_effect(
+    dates = fitted_model$data$dates$infection_project,
+    cdf = gi_cdf,
+    states = fitted_model$data$states
+  )
+  
+  surv <- ga$surveillance_reff_local_reduction
+  
+  reduction <- extra_iso*surv
+  
+  exp(log_R0 + log(reduction))
+}
+
+
 # reff component 1 if only macrodistancing had changed
 reff_1_only_macro <- function(fitted_model) {
   ga <- fitted_model$greta_arrays
@@ -5598,40 +5616,6 @@ reff_1_without_vaccine <- function(fitted_model, vaccine_effect){
 }
 
 
-reff_1_without_vaccine <- function(fitted_model, vaccine_effect){
-  
-  ga <- fitted_model$greta_arrays
-  
-  dates <- fitted_model$data$dates$infection_project
-  
-  df <- full_join(
-    expand_grid(
-      date = dates,
-      state = unique(vaccine_effect$state)
-    ),
-    vaccine_effect
-  ) %>%
-    arrange(state, date) %>% 
-    group_by(state) %>%
-    tidyr::fill(
-      effect,
-      .direction = "updown"
-    ) %>%
-    pivot_wider(
-      names_from = state,
-      values_from = effect
-    )
-  
-  ote <- df %>%
-    dplyr::select(-date) %>%
-    as.matrix
-  
-  
-  reff1 <- ga$R_eff_loc_1 
-  
-  reff1/ote
-  
-}
 
 vaccination_dates <- function() {
   expand_grid(
@@ -5723,6 +5707,7 @@ reff_plotting_sims <- function(
       R_eff_loc_1_micro = reff_1_only_micro(fitted_model_extended),
       R_eff_loc_1_surv = reff_1_only_surveillance(fitted_model_extended),
       R_eff_loc_1_iso = reff_1_only_extra_isolation(fitted_model_extended),
+      R_eff_loc_1_ttiq = reff_1_only_ttiq(fitted_model_extended),
       R_eff_loc_1_vaccine_only = reff_1_vaccine_only(fitted_model_extended, vaccine_timeseries),
       R_eff_loc_1_without_vaccine = reff_1_without_vaccine(fitted_model_extended, vaccine_timeseries),
       R_eff_12_1_ratio = reff_C12_C1_ratio(fitted_model_extended)
@@ -5740,6 +5725,7 @@ reff_plotting_sims <- function(
     "R_eff_loc_1_macro",
     "R_eff_loc_1_surv",
     "R_eff_loc_1_iso",
+    "R_eff_loc_1_ttiq",
     "R_eff_loc_1_vaccine_only",
     "R_eff_loc_1_without_vaccine",
     "R_eff_12_1_ratio"
@@ -5782,6 +5768,7 @@ reff_plotting <- function(
         R_eff_loc_1_micro = reff_1_only_micro(fitted_model_extended),
         R_eff_loc_1_surv = reff_1_only_surveillance(fitted_model_extended),
         R_eff_loc_1_iso = reff_1_only_extra_isolation(fitted_model_extended),
+        R_eff_loc_1_ttiq = reff_1_only_ttiq(fitted_model_extended),
         R_eff_loc_1_vaccine_only = reff_1_vaccine_only(fitted_model_extended, vaccine_timeseries),
         R_eff_loc_1_without_vaccine = reff_1_without_vaccine(fitted_model_extended, vaccine_timeseries),
         R_eff_12_1_ratio = reff_C12_C1_ratio(fitted_model_extended)
@@ -5799,6 +5786,7 @@ reff_plotting <- function(
       "R_eff_loc_1_macro",
       "R_eff_loc_1_surv",
       "R_eff_loc_1_iso",
+      "R_eff_loc_1_ttiq",
       "R_eff_loc_1_vaccine_only",
       "R_eff_loc_1_without_vaccine",
       "R_eff_12_1_ratio"
@@ -6008,14 +5996,28 @@ reff_plotting <- function(
              min_date = min_date,
              max_date = max_date,
              multistate = TRUE,
-             base_colour = ,
+             base_colour = purple,
              projection_at = projection_date,
              plot_voc = TRUE) + 
     ggtitle(label = "Impact contract tracing isolation",
-            subtitle = expression(R["eff"]~"if"~due~to~social~distancing)) +
+            subtitle = expression(R["eff"]~"if"~only~extra~isolation~had~changed)) +
     ylab(expression(R["eff"]~component))
   
   save_ggplot("R_eff_1_iso.png", dir, subdir)
+  
+  plot_trend(sims$R_eff_loc_1_ttiq,
+             data = fitted_model$data,
+             min_date = min_date,
+             max_date = max_date,
+             multistate = TRUE,
+             base_colour = "Coral",
+             projection_at = projection_date,
+             plot_voc = TRUE) + 
+    ggtitle(label = "Impact of TTIQ",
+            subtitle = expression(R["eff"]~"if"~only~TTIQ~had~changed)) +
+    ylab(expression(R["eff"]~component))
+  
+  save_ggplot("R_eff_1_ttiq.png", dir, subdir)
   
   # Component 1 for national / state populations
   plot_trend(sims$R_eff_loc_1,
@@ -6606,8 +6608,16 @@ load_linelist <- function(date = NULL,
       paste0("~/not_synced/vic/", ., "_linelist_reff.csv") %>%
       get_vic_linelist()
     
+    vic_ll_date <- vic_linelist$date_linelist[1]
+    vic_ll_start <- min(vic_linelist$date_confirmation)
+    
     linelist <- linelist %>%
-      filter(state != "VIC") %>%
+      filter(
+        !(state == "VIC" &
+            date_confirmation >= vic_ll_start & 
+            date_confirmation <= vic_ll_date
+        )
+      ) %>%
       bind_rows(vic_linelist)
     
   }
@@ -8018,7 +8028,11 @@ estimate_delays <- function(
   absolute_min_records = 100,
   min_window = 7,
   max_window = 56,
-  national_exclusions = tibble(state = "VIC", start = as.Date("2020-06-14"), end = NA),
+  national_exclusions = tibble(
+    state = "VIC",
+    start = as.Date("2020-06-14"),
+    end   = as.Date("2020-12-01")
+  ),
   revert_to_national = TRUE
 ) {
   

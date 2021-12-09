@@ -351,8 +351,8 @@ vaccine_effect_timeseries <- bind_rows(
     )
   ) %>%
   ungroup
-    
-    
+
+
 
 
 data_date <- max(vaccine_effect_timeseries$date)

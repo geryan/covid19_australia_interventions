@@ -206,6 +206,32 @@ dose_data %>%
   pull(counts_agree) %>%
   table
 
-dose_data %>%
+edd <- dose_data %>%
+  arrange(state, age_class, dose1, dose2, dose3) %>%
+  group_by(state, age_class, dose1, dose2, dose3) %>%
+  mutate(
+    new1 = slide_dbl(
+      .x = cumulative_count,
+      .f = function(x){
+        x[2] - x[1]
+      },
+      .before = 1
+    ),
+    new2 = slide_dbl(
+      .x = cumulative_count,
+      .f = function(x){
+        x[3] - x[1]
+      },
+      .before = 2
+    ),
+    new3 = slide_dbl(
+      .x = cumulative_count,
+      .f = function(x){
+        x[4] - x[1]
+      },
+      .before = 3
+    )
+  )
+  
   
   

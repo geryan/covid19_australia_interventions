@@ -398,8 +398,13 @@ effective_dose_data_write <- edd %>%
   ) %>%
   rename("vaccine" = last_vaccine)
 
-write_csv(effective_dose_data_write,
-          file = "outputs/effective_dose_data_20211213.csv")
+write_csv(
+  effective_dose_data_write,
+  file = sprintf(
+    "outputs/effective_dose_data_%s.csv",
+    data_date
+  )
+)
 
 write_csv(effective_dose_data,
           file = "outputs/effective_dose_data_alternate_20211213.csv")

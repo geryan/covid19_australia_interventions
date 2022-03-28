@@ -5467,17 +5467,23 @@ reff_model_data <- function(
   hotel_quarantine_start_date <- max(quarantine_dates()$date)
   n_hotel_cases <- sum(imported_cases[dates >= hotel_quarantine_start_date, ])
   
-  vaccine_effect_timeseries <- readRDS("outputs/vaccine_effect_timeseries.RDS")
+  #immunity_effect_timeseries <- readRDS("outputs/vaccine_effect_timeseries.RDS")
   
-  ve_omicron <- vaccine_effect_timeseries %>%
+  immunity_effect_timeseries <- readRDS("outputs/combined_effect_full.RDS") %>%
+    filter(ascertainment == 0.5)
+  
+  
+  vaccine_dates <- unique(immunity_effect_timeseries$date)
+  
+  ve_omicron <- immunity_effect_timeseries %>%
     filter(variant == "Omicron") %>%
     select(date, state, effect)
   
-  ve_delta <- vaccine_effect_timeseries %>%
+  ve_delta <- immunity_effect_timeseries %>%
     filter(variant == "Delta") %>%
     select(date, state, effect)
   
-  vaccine_effect_matrix_delta <- ve_delta %>%
+  immunity_effect_matrix_delta <- ve_delta %>%
     pivot_wider(
       names_from = state,
       values_from = effect
@@ -5486,6 +5492,12 @@ reff_model_data <- function(
       y = tibble(date = dates_project)
     ) %>%
     arrange(date) %>%
+    mutate(
+      across(
+        -date,
+        ~ ifelse(date < min(vaccine_dates), 1, .)
+      )
+    ) %>%
     tidyr::fill(
       everything(),
       .direction = "updown"
@@ -5493,7 +5505,7 @@ reff_model_data <- function(
     dplyr::select(-date) %>%
     as.matrix
   
-  vaccine_effect_matrix_omicron <- ve_omicron %>%
+  immunity_effect_matrix_omicron <- ve_omicron %>%
     pivot_wider(
       names_from = state,
       values_from = effect
@@ -5502,6 +5514,12 @@ reff_model_data <- function(
       y = tibble(date = dates_project)
     ) %>%
     arrange(date) %>%
+    mutate(
+      across(
+        -date,
+        ~ ifelse(date < min(vaccine_dates), 1, .)
+      )
+    ) %>%
     tidyr::fill(
       everything(),
       .direction = "updown"
@@ -5514,11 +5532,9 @@ reff_model_data <- function(
   
   omicron_index <- which(omicron_matrix == 1)
   
-  vaccine_effect_matrix <- vaccine_effect_matrix_delta
+  immunity_effect_matrix <- immunity_effect_matrix_delta
   
-  vaccine_effect_matrix[omicron_index] <- vaccine_effect_matrix_omicron[omicron_index]
-  
-  vaccine_dates <- unique(vaccine_effect_timeseries$date)
+  immunity_effect_matrix[omicron_index] <- immunity_effect_matrix_omicron[omicron_index]
   
   # return a named, nested list of these objects
   list(
@@ -5556,7 +5572,7 @@ reff_model_data <- function(
     n_date_nums = n_date_nums,
     n_dates_project = n_dates_project,
     n_inducing =  n_inducing,
-    vaccine_effect_matrix = vaccine_effect_matrix
+    immunity_effect_matrix = immunity_effect_matrix
   )
   
 }
@@ -5613,7 +5629,7 @@ reff_model <- function(data) {
   R_eff_loc_1_no_surv <- extend(distancing_effect$R_t, data$n_dates_project)
   
   # pull out vaccination effect
-  vax_effect <- data$vaccine_effect_matrix
+  vax_effect <- data$immunity_effect_matrix
   
   # multiply by the surveillance and vaccination effects
   R_eff_loc_1 <- R_eff_loc_1_no_surv * surveillance_reff_local_reduction * vax_effect #*

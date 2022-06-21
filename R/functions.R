@@ -5607,8 +5607,7 @@ reff_model_data <- function(
   
 }
 
-reff_model <- function(data) {
-  
+TP_only_model <- function(data) {
   # reduction in R due to surveillance detecting and isolating infectious people
   surveillance_reff_local_reduction <- surveillance_effect(
     dates = data$dates$infection_project,
@@ -5674,6 +5673,39 @@ reff_model <- function(data) {
   log_R_eff_imp_1 <- log_R0 + log_Qt
   R_eff_imp_1 <- exp(log_R_eff_imp_1)
   
+  
+  list(
+    greta_arrays = module(
+      R_eff_loc_1,
+      R_eff_imp_1,
+      log_R0,
+      log_q,
+      distancing_effect,
+      surveillance_reff_local_reduction#,
+      #extra_isolation_local_reduction,
+    )
+  )
+  
+}
+
+
+
+reff_model <- function(data, TP_obj = NULL) {
+  
+  
+  if (is.null(TP_obj)) {
+    TP_obj <- TP_only_model(data)
+  }
+  
+  attach(TP_obj)
+  
+  log_R_eff_loc_1 <- log(R_eff_loc_1)
+  
+  # extract R0 from this model and estimate R_t component due to quarantine for
+  # overseas-acquired cases
+  log_R_eff_imp_1 <- log(R_eff_imp_1)
+  
+  ####
   # hierarchical (marginal) prior sd on log(Reff12) by state 
   sigma <- normal(0, 0.5, truncation = c(0, Inf))
   sigma_state <- sigma * ones(data$n_states)
@@ -11622,7 +11654,7 @@ log10_neut_density <- function(x, mean, sd) {
 
 get_vaccine_efficacies <- function(vaccine_cohorts, 
                                    variants = c("Delta", "Omicron BA2", "Omicron BA4/5"),
-                                   neut_immune_escape = 0.325) {
+                                   neut_immune_escape = 0.44) {
   
   # load omicron parameters in wide format and subset to different parameter sets
   params_wide <- get_omicron_params_wide()
@@ -12045,7 +12077,7 @@ get_infection_efficacies_vax <- function(
   vaccine_cohorts,
   infection_cohorts, 
   variants = c("Omicron BA2", "Omicron BA4/5"),
-  neut_immune_escape = 0.325
+  neut_immune_escape = 0.44
 ) {
   
   # load omicron parameters in wide format and subset to different parameter sets
@@ -12220,7 +12252,7 @@ get_infection_efficacies_vax <- function(
 
 get_infection_efficacies_infection_only <- function(vaccine_cohorts, 
                                                     variants = c("Omicron BA2", "Omicron BA4/5"),
-                                                    neut_immune_escape = 0.325) {
+                                                    neut_immune_escape = 0.44) {
   
   # load omicron parameters in wide format and subset to different parameter sets
   params_wide <- get_omicron_params_wide()

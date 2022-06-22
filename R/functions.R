@@ -5337,7 +5337,8 @@ reff_model_data <- function(
   n_weeks_ahead = 6,
   inducing_gap = 3,
   detection_cutoff = 0.95,
-  notification_delay_cdf = NULL
+  notification_delay_cdf = NULL,
+  n_weeks_before = NULL
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5352,8 +5353,9 @@ reff_model_data <- function(
 
   
   # impute onset dates and infection dates using this
-  linelist <- linelist_raw %>%
+linelist <- linelist_raw %>%
     impute_linelist(notification_delay_cdf = notification_delay_cdf)
+
   # truncate mobility data to no later than the day before the linelist (needed
   # for modelling on historic linelists) and then get the most recent date
   latest_mobility_date <- mobility_data %>%
@@ -5362,16 +5364,29 @@ reff_model_data <- function(
     max()
   
   # get linelist date and state information
-  earliest_date <- min(linelist$date)
+  linelist_start_date <- min(linelist$date)
   latest_date <- max(linelist$date)
   
+  ############## The linelist up to this point is the full linelist and will be shortened
+  ##### dates defined below are shortened
+  
+  #the full dates corresponds to the full linelist
+  full_dates <- seq(linelist_start_date, latest_date, by = 1)
+  
+  if (is.null(n_weeks_before)) {
+    earliest_date <- linelist_start_date
+  } else {
+    earliest_date <-  linelist_date - n_weeks_before*7
+  }
+  
+  #all the dates below corresponds to the shortened period 
   states <- sort(unique(linelist$state))
   dates <- seq(earliest_date, latest_date, by = 1)
   mobility_dates <- seq(earliest_date, latest_mobility_date, by = 1)
   
   n_states <- length(states)
   n_dates <- length(dates)
-  n_extra <- as.numeric(Sys.Date() - max(dates)) + 7 * n_weeks_ahead
+  n_extra <- as.numeric(linelist_date - max(dates)) + 7 * n_weeks_ahead
   date_nums <- seq_len(n_dates + n_extra)
   dates_project <- earliest_date + date_nums - 1
   n_dates_project <- n_date_nums <- length(date_nums)
@@ -5384,7 +5399,7 @@ reff_model_data <- function(
   # get detection probabilities for these dates and states
   detection_prob_mat <- detection_probability_matrix(
     latest_date = linelist_date - 1,
-    infection_dates = dates,
+    infection_dates = full_dates,
     states = states,
     notification_delay_cdf = notification_delay_cdf
   )
@@ -5408,14 +5423,14 @@ reff_model_data <- function(
   # include day of the week glm to smooth weekly report artefact
   
   #subset to omicron period
-  week_count <- 1 + 1:length(seq(earliest_date, latest_date, by = 1)) %/% 7
+  week_count <- 1 + 1:length(seq(linelist_start_date, latest_date, by = 1)) %/% 7
   
-  dow <- lubridate::wday(seq(earliest_date, latest_date, by = 1))
+  dow <- lubridate::wday(seq(linelist_start_date, latest_date, by = 1))
   
   dow_effect <- local_cases
   dow_effect[] <- 1
   
-  dow_effect[dates>=earliest_date,] <- apply(local_cases[dates>=earliest_date,],
+  dow_effect[full_dates>=linelist_start_date,] <- apply(local_cases[full_dates>=linelist_start_date,],
                                                      2,
                                                      FUN = function(x){
                                                        m <- glm(
@@ -5468,15 +5483,15 @@ reff_model_data <- function(
   
   local_infectiousness <- gi_convolution(
     local_cases_infectious_corrected,
-    dates = dates,
+    dates = full_dates,
     states = states,
     gi_cdf = gi_cdf#,
     #ttd_cdfs = tti_cdfs
   )
   
-  imported_infectiousness <- gi_convolution(
+ imported_infectiousness <- gi_convolution(
     imported_cases_corrected,
-    dates = dates,
+    dates = full_dates,
     states = states,
     gi_cdf = gi_cdf#,
   )
@@ -5492,7 +5507,28 @@ reff_model_data <- function(
   hotel_quarantine_start_date <- max(quarantine_dates()$date)
   n_hotel_cases <- sum(imported_cases[dates >= hotel_quarantine_start_date, ])
   
- 
+  
+  
+  #shortening of dates
+  dates_select <- full_dates %in% dates
+  
+  short_local_cases <- local_cases[dates_select,]
+  short_local_cases_infectious <- local_cases_infectious[dates_select,]
+  short_local_infectiousness <- local_infectiousness[dates_select,]
+  
+  
+  short_imported_cases <- imported_cases[dates_select,]
+  short_imported_infectiousness <- imported_infectiousness[dates_select,]
+  
+  short_dow <- dow[dates_select]
+  short_dow_effect <- dow_effect[dates_select,]
+  
+  short_detection_prob_mat <- detection_prob_mat[dates_select,]
+  short_valid_mat <- valid_mat[dates_select,]
+  
+  
+  
+  
   vaccine_effect_timeseries <- readRDS("outputs/vaccination_effect.RDS")
   
   ve_omicron <- vaccine_effect_timeseries %>%
@@ -5549,18 +5585,18 @@ reff_model_data <- function(
   # return a named, nested list of these objects
   list(
     local = list(
-      cases = local_cases,
-      cases_infectious = local_cases_infectious,
-      infectiousness = local_infectiousness
+      cases = short_local_cases,
+      cases_infectious = short_local_cases_infectious,
+      infectiousness = short_local_infectiousness
     ),
     imported = list(
-      cases = imported_cases,
-      infectiousness = imported_infectiousness,
+      cases = short_imported_cases,
+      infectiousness = short_imported_infectiousness,
       total_hotel_cases = n_hotel_cases,
       total_hotel_spillovers = n_hotel_spillovers
     ),
-    detection_prob_mat = detection_prob_mat,
-    valid_mat = valid_mat,
+    detection_prob_mat = short_detection_prob_mat,
+    valid_mat = short_valid_mat,
     states = states,
     dates = list(
       infection = dates,
@@ -5576,7 +5612,7 @@ reff_model_data <- function(
       latest_project = max(dates_project),
       linelist = linelist_date,
       vaccine_dates = vaccine_dates,
-      dow = dow
+      dow = short_dow#hmmmmmmm
     ),
     n_dates = n_dates,
     n_states = n_states,
@@ -5584,7 +5620,7 @@ reff_model_data <- function(
     n_dates_project = n_dates_project,
     n_inducing =  n_inducing,
     vaccine_effect_matrix = vaccine_effect_matrix,
-    dow_effect = dow_effect
+    dow_effect = short_dow_effect
   )
   
 }
@@ -5756,13 +5792,13 @@ reff_model <- function(data, TP_obj = NULL) {
     TP_params <- NULL
   }
   
-  attach(TP_obj)
+  # attach(TP_obj)
   
-  log_R_eff_loc_1 <- log(R_eff_loc_1)
+  log_R_eff_loc_1 <- log(TP_obj$R_eff_loc_1)
   
   # extract R0 from this model and estimate R_t component due to quarantine for
   # overseas-acquired cases
-  log_R_eff_imp_1 <- log(R_eff_imp_1)
+  log_R_eff_imp_1 <- log(TP_obj$R_eff_imp_1)
   
   ####
   # hierarchical (marginal) prior sd on log(Reff12) by state 
@@ -6789,11 +6825,14 @@ write_reff_sims <- function(
   
 }
 
-fit_reff_model <- function(data, max_tries = 1, iterations_per_step = 2000,
-                           warmup = 1000) {
+fit_reff_model <- function(data, max_tries = 2, 
+                           init_n_samples = 2000,
+                           iterations_per_step = 2000,
+                           warmup = 1000,
+                           TP_obj = NULL) {
   
   # build the greta model
-  model_output <- reff_model(data)
+  model_output <- reff_model(data, TP_obj = TP_obj)
   greta_arrays <- model_output$greta_arrays
   greta_model <- model_output$greta_model
   
@@ -6803,13 +6842,13 @@ fit_reff_model <- function(data, max_tries = 1, iterations_per_step = 2000,
     sampler = hmc(Lmin = 25, Lmax = 30),
     chains = 10,
     warmup = warmup,
-    n_samples = 2000,
+    n_samples = init_n_samples,
     one_by_one = TRUE
   )
   
   # if it did not converge, try extending it a bunch more times
-  finished <- converged(draws)
-  tries <- 0
+  finished <- TRUE
+  tries <- 1
   while(!finished & tries < max_tries) {
     draws <- extra_samples(
       draws,
@@ -6817,7 +6856,7 @@ fit_reff_model <- function(data, max_tries = 1, iterations_per_step = 2000,
       one_by_one = TRUE
     )
     tries <- tries + 1
-    finished <- converged(draws)
+    finished <- TRUE
   }
   
   # warn if we timed out before converging successfully

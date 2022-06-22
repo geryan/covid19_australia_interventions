@@ -5532,7 +5532,7 @@ linelist <- linelist_raw %>%
   vaccine_effect_timeseries <- readRDS("outputs/vaccination_effect.RDS")
   
   ve_omicron <- vaccine_effect_timeseries %>%
-    filter(variant == "Omicron") %>%
+    filter(variant == "Omicron BA1/2") %>%
     select(date, state, effect)
   
   ve_delta <- vaccine_effect_timeseries %>%

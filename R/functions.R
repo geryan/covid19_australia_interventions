@@ -2601,14 +2601,14 @@ prop_variant <- function(dates){
 distancing_effect_model <- function(
   dates,
   gi_cdf,
-  voc_mixture = c("all", "alpha", "delta", "omicron", "wt")
+  voc_mixture = c("all", "alpha", "delta", "omicron", "wt"),
+  contact_params,
+  phi_params,
+  beta,
+  p
 ) {
   
   voc_mixture <- match.arg(voc_mixture)
-  
-  # informative priors on variables for contacts at t = 0 (Hx = household, Ox =
-  # non-household, Tx = total, xC = contacts. xD = duration)
-  baseline_contact_params <- baseline_contact_parameters(gi_cdf)
   
   
   prop_var <- prop_variant(dates = dates)
@@ -2646,17 +2646,9 @@ distancing_effect_model <- function(
   }
   
   
-  # prior on the probability of *not* transmitting, per hour of contact
-  # (define to match moments of R0 prior)
-  logit_p_params <- logit_p_prior(baseline_contact_params, gi_cdf)
-  logit_p <- normal(logit_p_params$meanlogit, logit_p_params$sdlogit)
-  p <- ilogit(logit_p)
+attach(phi_params)
   
-  phi_alpha       <- normal(1.454, 0.055, truncation = c(0, Inf))
-  phi_delta_alpha <- normal(1.421, 0.033, truncation = c(0, Inf))
-  phi_omicron <- 2.347662
-  
-  phi_delta <- phi_alpha * phi_delta_alpha
+attach(contact_params)
   
   phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron
   
@@ -2664,16 +2656,6 @@ distancing_effect_model <- function(
   
   
   infectious_days <- infectious_period(gi_cdf)
-  
-  HC_0 <- normal(baseline_contact_params$mean_contacts[1],
-                 baseline_contact_params$se_contacts[1],
-                 truncation = c(0, Inf))
-  HD_0 <- normal(baseline_contact_params$mean_duration[1],
-                 baseline_contact_params$se_duration[1],
-                 truncation = c(0, Inf))
-  OD_0 <- normal(baseline_contact_params$mean_duration[2],
-                 baseline_contact_params$se_duration[2],
-                 truncation = c(0, Inf))
   
   # get HD_t in each state
   h_t <- h_t_state(dates)
@@ -2697,7 +2679,7 @@ distancing_effect_model <- function(
   )
   d_t_state <- microdistancing_prob / max(microdistancing_prob)
   
-  beta <- uniform(0, 1)
+
   gamma_t_state <- 1 - beta * d_t_state
   
   # compute component of R_eff for local cases
@@ -2719,7 +2701,7 @@ distancing_effect_model <- function(
        OD_0 = OD_0,
        dates = dates,
        phi_alpha = phi_alpha,
-       phi_delta_alpha = phi_delta_alpha,
+       phi_omicron = phi_omicron,
        phi_delta = phi_delta,
        phi_star = phi_star)
   
@@ -5607,7 +5589,84 @@ reff_model_data <- function(
   
 }
 
+TP_params <- function(){
+  
+  
+  baseline_contact_parameters = baseline_contact_parameters(gi_cdf)
+  
+  
+  HC_0 <- normal(baseline_contact_parameters$mean_contacts[1],
+                 baseline_contact_parameters$se_contacts[1],
+                 truncation = c(0, Inf))
+  HD_0 <- normal(baseline_contact_parameters$mean_duration[1],
+                 baseline_contact_parameters$se_duration[1],
+                 truncation = c(0, Inf))
+  OD_0 <- normal(baseline_contact_parameters$mean_duration[2],
+                 baseline_contact_parameters$se_duration[2],
+                 truncation = c(0, Inf))
+  
+  
+  beta <- uniform(0, 1)
+  
+  # q_raw <- uniform(0, 1, dim = 3)
+  log_q_raw <- -exponential(1, dim = 3)
+  log_q <- cumsum(log_q_raw)
+  
+  
+  # prior on the probability of *not* transmitting, per hour of contact
+  # (define to match moments of R0 prior)
+  logit_p_params <- logit_p_prior(baseline_contact_parameters, gi_cdf)
+  logit_p <- normal(logit_p_params$meanlogit, logit_p_params$sdlogit)
+  p <- ilogit(logit_p)
+  
+  phi_alpha       <- normal(1.454, 0.055, truncation = c(0, Inf))
+  phi_delta_alpha <- normal(1.421, 0.033, truncation = c(0, Inf))
+  phi_omicron <- 2.347662
+  
+  phi_delta <- phi_alpha * phi_delta_alpha
+  
+           
+           
+module(log_q,
+       contact_params = module(
+       HC_0,
+       HD_0,
+       OD_0
+       ),
+       beta,
+       p,
+       phi_params = module(
+       phi_alpha,
+       phi_delta,
+       phi_omicron))
+}
+
+TP_only_likelihood <- function(data,
+                               params = TP_params()) {
+  
+  # add likelihood for hotel quarantine spillovers - assume Poisson since
+  # there's no reason to expect clustering with these rare events, and we'd
+  # never be able to determine the number infected in each incident anyway
+  expected_hotel_spillovers <- exp(params$log_q[3] + log(data$imported$total_hotel_cases))
+  distribution(data$imported$total_hotel_spillovers) <- poisson(expected_hotel_spillovers)
+  
+  
+}
+
+
 TP_only_model <- function(data) {
+  
+  params <- TP_params()
+  calculations <- TP_only_calculations(data, params)
+  TP_only_likelihood(data, params)
+  
+  return(module(params,
+                calculations))
+  
+}
+
+TP_only_calculations <- function(data,
+                                 params) {
   # reduction in R due to surveillance detecting and isolating infectious people
   surveillance_reff_local_reduction <- surveillance_effect(
     dates = data$dates$infection_project,
@@ -5634,16 +5693,8 @@ TP_only_model <- function(data) {
   )
   q_index <- c(q_index, rep(3, data$n_date_nums - data$n_dates))
   
-  # q_raw <- uniform(0, 1, dim = 3)
-  log_q_raw <- -exponential(1, dim = 3)
-  log_q <- cumsum(log_q_raw)
-  log_Qt <- log_q[q_index]
-  
-  # add likelihood for hotel quarantine spillovers - assume Poisson since
-  # there's no reason to expect clustering with these rare events, and we'd
-  # never be able to determine the number infected in each incident anyway
-  expected_hotel_spillovers <- exp(log_q[3] + log(data$imported$total_hotel_cases))
-  distribution(data$imported$total_hotel_spillovers) <- poisson(expected_hotel_spillovers)
+
+  log_Qt <- params$log_q[q_index]
   
   # The change in R_t for locally-acquired cases due to social distancing
   # behaviour, modelled as a sum of household R_t and non-household R_t
@@ -5651,7 +5702,12 @@ TP_only_model <- function(data) {
   # contacts per 24h (itself modelled from mobility data, calibrated against
   # contact surveys) and the relative transmission probability per contact,
   # inferred from surveys on micro-distancing behaviour.
-  distancing_effect <- distancing_effect_model(data$dates$mobility, gi_cdf)
+  distancing_effect <- distancing_effect_model(data$dates$mobility, 
+                                               gi_cdf,
+                                               contact_params = params$contact_params,
+                                               phi_params = params$phi_params,
+                                               beta = params$beta,
+                                               p = params$p)
   
   # pull out R_t component due to distancing for locally-acquired cases, and
   # extend to correct length
@@ -5674,8 +5730,7 @@ TP_only_model <- function(data) {
   R_eff_imp_1 <- exp(log_R_eff_imp_1)
   
   
-  list(
-    greta_arrays = module(
+module(
       R_eff_loc_1,
       R_eff_imp_1,
       log_R0,
@@ -5684,7 +5739,7 @@ TP_only_model <- function(data) {
       surveillance_reff_local_reduction#,
       #extra_isolation_local_reduction,
     )
-  )
+
   
 }
 
@@ -5694,7 +5749,11 @@ reff_model <- function(data, TP_obj = NULL) {
   
   
   if (is.null(TP_obj)) {
-    TP_obj <- TP_only_model(data)
+    TP_output <- TP_only_model(data)
+    TP_obj <- TP_output$calculations
+    TP_params <- TP_output$params
+  } else {
+    TP_params <- NULL
   }
   
   attach(TP_obj)
@@ -5805,7 +5864,9 @@ reff_model <- function(data, TP_obj = NULL) {
       #extra_isolation_local_reduction,
       log_R_eff_loc,
       log_R_eff_imp,
-      epsilon_L
+      epsilon_L,
+      TP_obj,
+      TP_params
     )
   )
   

@@ -13,7 +13,8 @@ sync_nndss()
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
-                        notification_delay_cdf = old_delay_cdf)
+                        notification_delay_cdf = NULL,
+                        n_weeks_before = NULL)
 #reload data here to get the latest vaccine effect, which is typically computed after linelist
 
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
@@ -34,7 +35,11 @@ write_local_cases(data)
 #update_past_cases()
 
 # define the model (and greta arrays) for Reff, and sample until convergence
-fitted_model <- fit_reff_model(data)
+fitted_model <- fit_reff_model(data,
+                               max_tries = 2,
+                               init_n_samples = 2000,
+                               iterations_per_step = 2000,
+                               warmup = 1000)
 
 # save the fitted model object
 saveRDS(fitted_model, "outputs/fitted_reff_model.RDS")
@@ -239,7 +244,7 @@ no_vax_or_infection_immunity_c1 <- read_csv(paste0("outputs/projection/r_eff_1_l
                                             )) 
 
 #ba2 vs ba4
-BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_samples.csv"),
+BA2_TP <- read_csv(paste0("outputs/projection/omicron_BA2_combined/r_eff_1_local_samples.csv"),
                                      col_types =cols(
                                        .default = col_double(),
                                        date = col_date(format = ""),
@@ -247,7 +252,7 @@ BA2_TP <- read_csv(paste0("outputs/projection/omicron_combined/r_eff_1_local_sam
                                        date_onset = col_date(format = "")
                                      )) 
 
-BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4_combined/r_eff_1_local_samples.csv"),
+BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4.5_combined/r_eff_1_local_samples.csv"),
                    col_types =cols(
                      .default = col_double(),
                      date = col_date(format = ""),
@@ -258,7 +263,8 @@ BA4_TP <- read_csv(paste0("outputs/projection/omicron_BA4_combined/r_eff_1_local
 
 #plot 
 start.date <- ymd("2021-02-01")
-end.date <- the.date
+end.date <- Sys.Date()
+vacc.start <- ymd("2021-02-22")
 date.label.format <- "%b %y"
 n.week.labels.panel <- 2
 n.week.ticks <- "1 month"
@@ -375,4 +381,15 @@ ggplot() +
   #   linetype = 5
   # )
 
-ggsave(paste0("outputs/figures/full_tp_compare_",the.date,"_BA4.png"), height = 10, width = 9, bg = "white")
+ggsave(paste0("outputs/figures/full_tp_compare_",end.date,"_BA4.png"), height = 10, width = 9, bg = "white")
+
+
+##### for NSW TP no immunity 
+tp_novax <- read_reff_samples("outputs/projection/r_eff_1_local_without_vaccine_samples.csv")
+
+write_csv(
+  tp_novax %>%
+    filter(state == "NSW"),
+  file = paste0("outputs/nsw_tp_no_immunity_",data$dates$linelist,".csv")
+)
+

@@ -12,8 +12,8 @@ source("R/functions.R")
 # estimates (google_change_trends.RDS) [~60s]
 
 source("R/mobility_change.R")
-# -- These figs into dropbox/to Freya
-# -- outputs/mobility_dates.csv into dropbox/to Freya
+# -- These figs into Mediaflux/to Freya
+# -- outputs/mobility_dates.csv into Mediaflux/to Freya
 
 # Section A.1) Dependent on survey data update (the numbered file must be manually
 # copied to data/survey_raw):
@@ -32,22 +32,20 @@ ggsave(
 )
 # will light up cells with any overly large counts. If this happens check raw data
 
-# 7. Output microdistancing survey data for U of Adelaide (Tobin/Josh, previously Dennis)
+# 7. Output microdistancing survey data on Mediaflux:
 # (data/microdistancing/Barometer wave <wave> compliance.csv and
-# data/contacts/barometer/contact numbers wave <wave>.csv), run microdistancing
-# model, and output figure (microdistancing_effect.png) and trend estimates
-# (microdistancing_trends.RDS) [~2 min]
+# data/contacts/barometer/contact numbers wave <wave>.csv) and face_covering,
+# run microdistancing model, and output figure (microdistancing_effect.png) and
+# trend estimates (microdistancing_trends.RDS) [~20 min]
 source("R/microdistancing_change.R")
-# -- email data/microdistancing/Barometer wave <wave> compliance.csv and
-# data/contacts/barometer/contact numbers wave <wave>.csv to Tobin/Dylan/Josh
-# -- figure to dropbox / Freya
+# -- figure to Mediaflux / Freya
 
 # 8. Run macrodistancing model and output figure ((microdistancing_effect.png) and
 # trend estimates (macrodistancing_trends.RDS). Can be run concurrently with
 # microdistancing model (i.e. on a separate process/machine) [~5-8h]
 # macro takes half a day to run so best to do on Mondays
 source("R/macrodistancing_change.R")
-# -- figure to dropbox / Freya
+# -- figure to Mediaflux / Freya
 
 # Section B) Dependent on NNDSS data update:
 #source("R/check_linelist.R")
@@ -59,9 +57,10 @@ source("R/macrodistancing_change.R")
 # [~60s]
 
 #overall linelist read line
-linelist <- load_linelist(use_vic = FALSE)#skip Vic when using commonwealth data
+linelist <- load_linelist(use_vic = FALSE) #skip Vic since using summary data
 
 # remove dubious SA onset dates
+# need to look at this again at some point
 linelist$date_onset[(linelist$state == "SA" & linelist$date_onset >= as_date("2022-02-27"))] <- NA
 
 saveRDS(
@@ -74,49 +73,44 @@ saveRDS(
 )
 
 source("R/rolling_delays.R")
-#  -- figs to dropbox / to Freya
+#  -- figs to Mediaflux / to Freya
 
 # 4. TTIQ and Isolation effect
 #source("R/isolation_effect.R")
-# -- figs and ttiq_effect.csv to dropbox / to Freya
+# -- figs and ttiq_effect.csv to Mediaflux / to Freya
 
 
-# # 5. ALT
+# # 5. summary data approach
 # load in commonwealth summary data and process it in reff model format
-#  this is a temporary data stream
-# inputing onset dates takes several hours so expect this script to take long
+# this is a not-so-temporary data stream
+# expect to change data stream again when select interview data becomes available
 source("R/commonwealth_ll.R")
 
 
-# # 5. Sync NNDSS data and write out case data (local_cases.csv) for Monash (Rob Hyndman/Mitch)
-# # and U of Melbourne (Rob Moss/Ruarai). RNG seed needs to match that in R_effective.R for imputation to
-# # be consistent. This is also done in the final script, but I send it to them
-# # whilst waiting [~60s]
-# set.seed(2020-04-29)
-# sync_nndss() # this line probably not necessary for HPC / widows, but shoudn't break aything
-# data <- reff_model_data(linelist_raw = linelist)
-# data$dates$linelist  # check it synced properly
-# # -- is this date the correct linelist date?
-# write_local_cases(data)
-# # -- put in dropbox and notify Mitch/Rob J/Ruarai
-# 
-# # Check no entries classed as "ERROR" (i.e. conflicting PLACE_OF_ACQUISITION and CV_SOURCE_INFECTION)
-# # if OK will only list "imported" and "local"
-# linelist %>%
-#   pull(import_status) %>%
-#   table
-# 
-# # write linelist format for UoAdelaide (Tobin/Josh) if necessary
-# # usually unnecessary unless edits to raw linelist
-# write_linelist(linelist = linelist)
+# Archived older pipeline
+# # 5. Sync NNDSS data and write out case data (local_cases.csv) for Monash (Rob
+# Hyndman/Mitch) # and U of Melbourne (Rob Moss/Ruarai). RNG seed needs to match
+# that in R_effective.R for imputation to # be consistent. This is also done in
+# the final script, but I send it to them # whilst waiting [~60s]
+# set.seed(2020-04-29) sync_nndss() # this line probably not necessary for HPC /
+# widows, but shoudn't break aything data <- reff_model_data(linelist_raw =
+# linelist) data$dates$linelist  # check it synced properly # -- is this date
+# the correct linelist date? write_local_cases(data) # -- put in Mediaflux and
+# notify Mitch/Rob J/Ruarai
+#
+# # Check no entries classed as "ERROR" (i.e. conflicting PLACE_OF_ACQUISITION
+# and CV_SOURCE_INFECTION) # if OK will only list "imported" and "local"
+# linelist %>% pull(import_status) %>% table
+#
+# # write linelist format for UoAdelaide (Tobin/Josh) if necessary # usually
+# unnecessary unless edits to raw linelist write_linelist(linelist = linelist)
 
 
 # 2. Vaccination effect - Quantium update usually CoB Tuesday
-# [~ 15 min]
+# [~ 45 min]
 source("R/immunity_effect.R")
-# -- Figs into dropbox / to Freya
-# -- vaccination_effect_timeseries_<date>.csv to dropbox and mediaflux
-# -- effective_dose_data_<date>.csv to mediaflux
+# -- Figs into Mediaflux / to Freya
+# -- all dated csv and rds outputs to Mediaflux
 
 
 # Section D) Dependent on NNDSS data update and outputs of all previous scripts:
@@ -129,7 +123,7 @@ source("R/immunity_effect.R")
 # r_eff_12_local_samples.csv, r_eff_12_local_samples_soft_clamped_95.csv in both
 # outputs/ and outputs/projection/) [~1-2h]
 source("R/R_effective.R")
-## - figures, samples as above, plus wt, alpha and delta, and
-# outputs/output_dates.csv to dropbox/Freya
+## - figures, samples as above, plus wt, alpha and delta, and other variants, and
+# outputs/output_dates.csv to Mediaflux/Freya
 
 # hooray - you're done!

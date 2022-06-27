@@ -1546,7 +1546,7 @@ plot_trend <- function(
   projection_at = NA,
   keep_only_rows = NULL,
   max_date = data$dates$latest_mobility,
-  min_date = as.Date("2020-03-01"),
+  min_date = data$dates$earliest,
   plot_voc = FALSE,
   plot_vax = FALSE
 ) {
@@ -6293,7 +6293,7 @@ reff_plotting <- function(
   fitted_model,
   dir = "outputs",
   subdir = "figures",
-  min_date = as.Date("2020-03-01"),
+  min_date = data$dates$earliest,
   #min_date = NA,
   max_date = fitted_model$data$dates$latest_mobility,
   mobility_extrapolation_rectangle = TRUE,

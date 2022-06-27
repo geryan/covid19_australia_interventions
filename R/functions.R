@@ -5532,7 +5532,7 @@ linelist <- linelist_raw %>%
   vaccine_effect_timeseries <- readRDS("outputs/vaccination_effect.RDS")
   
   ve_omicron <- vaccine_effect_timeseries %>%
-    filter(variant == "Omicron BA1/2") %>%
+    filter(variant == "Omicron BA2") %>%
     select(date, state, effect)
   
   ve_delta <- vaccine_effect_timeseries %>%
@@ -5770,7 +5770,7 @@ module(
       R_eff_loc_1,
       R_eff_imp_1,
       log_R0,
-      log_q,
+      log_Qt,
       distancing_effect,
       surveillance_reff_local_reduction#,
       #extra_isolation_local_reduction,
@@ -5792,7 +5792,7 @@ reff_model <- function(data, TP_obj = NULL) {
     TP_params <- NULL
   }
   
-  # attach(TP_obj)
+  attach(TP_obj)
   
   log_R_eff_loc_1 <- log(TP_obj$R_eff_loc_1)
   
@@ -5889,12 +5889,12 @@ reff_model <- function(data, TP_obj = NULL) {
       expected_infections_vec,
       size,
       prob_trunc,
-      R_eff_loc_1,
-      R_eff_imp_1,
+      log_R_eff_loc_1,
+      log_R_eff_imp_1,
       R_eff_loc_12,
       R_eff_imp_12,
       log_R0,
-      log_q,
+      log_Qt,
       distancing_effect,
       surveillance_reff_local_reduction,
       #extra_isolation_local_reduction,
@@ -5902,7 +5902,9 @@ reff_model <- function(data, TP_obj = NULL) {
       log_R_eff_imp,
       epsilon_L,
       TP_obj,
-      TP_params
+      TP_params,
+      R_eff_loc_1,
+      R_eff_imp_1
     )
   )
   
@@ -6847,7 +6849,7 @@ fit_reff_model <- function(data, max_tries = 2,
   )
   
   # if it did not converge, try extending it a bunch more times
-  finished <- TRUE
+  finished <- converged(draws)
   tries <- 1
   while(!finished & tries < max_tries) {
     draws <- extra_samples(
@@ -6856,7 +6858,7 @@ fit_reff_model <- function(data, max_tries = 2,
       one_by_one = TRUE
     )
     tries <- tries + 1
-    finished <- TRUE
+    finished <- converged(draws)
   }
   
   # warn if we timed out before converging successfully

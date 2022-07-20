@@ -14,8 +14,9 @@ linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
-                        n_weeks_before = NULL)
-#reload data here to get the latest vaccine effect, which is typically computed after linelist
+                        n_weeks_before = 26)
+#reload data here to get the latest vaccine effect, which is typically computed
+#after linelist
 
 #data <- readRDS("outputs/pre_loaded_reff_data_old_imputation.RDS")
 # #quick check if reff data is already loaded
@@ -34,41 +35,85 @@ write_local_cases(data)
 # format and write out any new linelists to the past_cases folder for Rob H
 #update_past_cases()
 
-# define the model (and greta arrays) for Reff, and sample until convergence
-fitted_model <- fit_reff_model(data,
-                               max_tries = 2,
-                               init_n_samples = 2000,
-                               iterations_per_step = 2000,
-                               warmup = 1000)
+# reload saved fitted model for the TP component
+fitted_model <- readRDS("outputs/fitted_full_reff_model.RDS")
+
+#get TP params 
+
+fitted_TP_params <- fitted_model$greta_arrays$TP_params
+
+# saveRDS(fitted_TP_params,
+#         paste0("outputs/saved_TP_params_",Sys.Date(),".RDS"))
+# 
+# fitted_TP_params <- readRDS(paste0("outputs/saved_TP_params_",Sys.Date(),".RDS"))
+
+#calculate TP 
+fitted_TP_calculations <- TP_only_calculations(data = data,
+                                               params = fitted_TP_params)
+
+R_eff_imp_1 <- fitted_TP_calculations$R_eff_imp_1
+R_eff_loc_1 <- fitted_TP_calculations$R_eff_loc_1
+
+fitted_TP_calculations_draws <- calculate(R_eff_imp_1,
+                                          R_eff_loc_1,
+                                          values = fitted_model$draws,
+                                          nsim = 10000)
+
+
+predicted_TP_obj <- list(R_eff_imp_1 = apply(fitted_TP_calculations_draws$R_eff_imp_1,
+                                             2:3,
+                                             mean),
+                         R_eff_loc_1 = apply(fitted_TP_calculations_draws$R_eff_loc_1,
+                                             2:3,
+                                             mean),
+                         log_R0 = fitted_TP_calculations$log_R0,
+                         log_Qt = fitted_TP_calculations$log_Qt,
+                         surveillance_reff_local_reduction = fitted_TP_calculations$surveillance_reff_local_reduction,
+                         distancing_effect = fitted_TP_calculations$distancing_effect)
+# saveRDS(predicted_TP_obj,
+#         paste0("outputs/saved_TP_prediction_",Sys.Date(),".RDS"))
+# 
+# predicted_TP_obj <- readRDS(paste0("outputs/saved_TP_prediction_",Sys.Date(),".RDS"))
+
+
+system.time(
+  
+  refitted_model <- fit_reff_model(data,warmup = 500,
+                                   init_n_samples = 2000,
+                                   max_tries = 2, 
+                                   iterations_per_step = 2000,
+                                   TP_obj = predicted_TP_obj)
+)
 
 # save the fitted model object
-saveRDS(fitted_model, "outputs/fitted_reff_model.RDS")
-# fitted_model <- readRDS("outputs/fitted_reff_model.RDS")
+saveRDS(refitted_model, "outputs/fitted_reff_only_model.RDS")
+# fitted_model <- readRDS("outputs/fitted_full_reff_model.RDS")
 
 
-# visual checks of model fit
-plot_reff_checks(fitted_model)
+# # visual checks of model fit
+# plot_reff_checks(fitted_model)
 
 
 # output Reff trajectory draws for Rob M
-write_reff_sims(fitted_model, dir = "outputs/projection")
+write_reff_sims(refitted_model, dir = "outputs/projection")
 
 
 vaccine_effect_timeseries <- readRDS(file = "outputs/vaccination_effect.RDS")
 
 # write sims of C1 without vaccine effect
 write_reff_sims_novax(
-  fitted_model#,
+  refitted_model#,
   #vaccine_timeseries = vaccine_effect_timeseries
 )
 
 # generatge sims for plotting
 # (saves repeat generation of sims in each reff_plotting call and keeps them consistent)
-sims <- reff_plotting_sims(fitted_model)
+sims <- reff_plotting_sims(fitted_model = fitted_model,
+                           refitted_model = refitted_model)
 
 # do plots for main period
 reff_plotting(
-  fitted_model,
+  refitted_model,
   dir = "outputs",
   sims = sims
 )
@@ -156,7 +201,7 @@ simulate_variant(
   variant = "omicron",
   subdir = "omicron_vax",
   vax_effect = vaccine_effect_timeseries %>% 
-    filter(variant == "Omicron", 
+    filter(variant == "Omicron BA2", 
            date <= max(fitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
@@ -192,7 +237,7 @@ simulate_variant(
   subdir = "omicron_combined/",
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
-      variant == "Omicron", 
+      variant == "Omicron BA2", 
       date <= max(fitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 

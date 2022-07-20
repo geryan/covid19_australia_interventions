@@ -1546,13 +1546,13 @@ plot_trend <- function(
   projection_at = NA,
   keep_only_rows = NULL,
   max_date = data$dates$latest_mobility,
-  min_date = data$dates$earliest,
+  min_date = NA,
   plot_voc = FALSE,
   plot_vax = FALSE
 ) {
   
   if(is.na(min_date)){
-    min_date <- max_date - months(6)
+    min_date = as.Date("2020-03-01")
   }
   
   
@@ -5999,9 +5999,12 @@ reff_1_only_ttiq <- function(fitted_model) {
 
 
 # reff component 1 if only macrodistancing had changed
-reff_1_only_macro <- function(fitted_model) {
+reff_1_only_macro <- function(fitted_model,
+                              baseline_surveillance_effect = 0.9443613) {
   ga <- fitted_model$greta_arrays
-  baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
+  if (is.null(baseline_surveillance_effect)) {
+    baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
+  }
   de <- ga$distancing_effect
   infectious_days <- infectious_period(gi_cdf)
   h_t <- h_t_state(fitted_model$data$dates$mobility)
@@ -6017,9 +6020,12 @@ reff_1_only_macro <- function(fitted_model) {
 }
 
 # reff component 1 if only macrodistancing had changed
-reff_1_only_micro <- function(fitted_model) {
+reff_1_only_micro <- function(fitted_model,
+                              baseline_surveillance_effect = 0.9443613) {
   ga <- fitted_model$greta_arrays
-  baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
+  if (is.null(baseline_surveillance_effect)) {
+    baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
+  }
   de <- ga$distancing_effect
   infectious_days <- infectious_period(gi_cdf)
   household_infections_micro <- de$HC_0 * (1 - de$p_star ^ de$HD_0)
@@ -6036,7 +6042,8 @@ reff_1_only_micro <- function(fitted_model) {
 
 
 # reff component 1 if only vaccination
-reff_1_vaccine_only <- function(fitted_model, vaccine_effect){
+reff_1_vaccine_only <- function(fitted_model, vaccine_effect,
+                                baseline_surveillance_effect = 0.9443613){
   
   ga <- fitted_model$greta_arrays
   
@@ -6065,7 +6072,9 @@ reff_1_vaccine_only <- function(fitted_model, vaccine_effect){
     as.matrix
   
   
-  baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
+  if (is.null(baseline_surveillance_effect)) {
+    baseline_surveillance_effect <- ga$surveillance_reff_local_reduction[1]
+  }
   de <- ga$distancing_effect
   infectious_days <- infectious_period(gi_cdf)
   household_infections_vacc <- de$HC_0 * (1 - de$p_star ^ de$HD_0)
@@ -6235,21 +6244,22 @@ constrain_run_length <- function(x, min_run_length = 7) {
 
 reff_plotting_sims <- function(
   fitted_model,
+  refitted_model = fitted_model,
   #vaccine_timeseries = vaccine_effect_timeseries,
   nsim = 10000
 ){
   # add counterfactuals to the model object:
   # add fitted_model_extended obect because fitted_model is modified
-  fitted_model_extended <- fitted_model
+  fitted_model_extended <- refitted_model
   
-  vaccine_timeseries <- as_tibble(fitted_model$data$vaccine_effect_matrix) %>%
-    mutate(date = fitted_model$data$dates$infection_project) %>%
+  vaccine_timeseries <- as_tibble(refitted_model$data$vaccine_effect_matrix) %>%
+    mutate(date = refitted_model$data$dates$infection_project) %>%
     pivot_longer(cols = -date, names_to = "state", values_to = "effect")
   
   # Reff for locals component 1 under
   # only micro/macro/surveillance improvements
   fitted_model_extended$greta_arrays <- c(
-    fitted_model$greta_arrays,
+    refitted_model$greta_arrays,
     list(
       R_eff_loc_1_macro = reff_1_only_macro(fitted_model_extended),
       R_eff_loc_1_micro = reff_1_only_micro(fitted_model_extended),
@@ -6263,27 +6273,38 @@ reff_plotting_sims <- function(
   )
   
   # flatten all relevant greta array matrices to vectors before calculating
-  trajectory_types <- c(
-    "R_eff_loc_1",
-    "R_eff_imp_1",
-    "R_eff_loc_12",
-    "R_eff_imp_12",
-    "epsilon_L",
-    "R_eff_loc_1_micro",
+  trajectory_types_TP <- c(
     "R_eff_loc_1_macro",
     "R_eff_loc_1_surv",
     "R_eff_loc_1_iso",
     "R_eff_loc_1_ttiq",
-    "R_eff_loc_1_vaccine_only",
     "R_eff_loc_1_without_vaccine",
-    "R_eff_12_1_ratio"
+    "R_eff_loc_1",
+    "R_eff_imp_1"
   )
-  vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types], c)
+  vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types_TP], c)
   
   # simulate from posterior for these quantities of interest
-  args <- c(vector_list, list(values = fitted_model_extended$draws, nsim = nsim))
-  sims <- do.call(calculate, args)
+  args <- c(vector_list, list(values = fitted_model$draws, nsim = nsim))
+  sims_TP <- do.call(calculate, args)
   
+  #for reff trajectory
+  trajectory_types_reff <- c(
+    "R_eff_loc_12",
+    "R_eff_imp_12",
+    "epsilon_L",
+    "R_eff_12_1_ratio",
+    "R_eff_loc_1_micro",
+    "R_eff_loc_1_vaccine_only"
+    
+  )
+  vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types_reff], c)
+  
+  # simulate from posterior for these quantities of interest
+  args <- c(vector_list, list(values = refitted_model$draws, nsim = nsim))
+  sims_reff <- do.call(calculate, args)
+  
+  sims <- c(sims_TP,sims_reff)
   return(sims)
 }
 

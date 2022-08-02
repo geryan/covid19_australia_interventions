@@ -5655,11 +5655,12 @@ TP_params <- function(){
   logit_p <- normal(logit_p_params$meanlogit, logit_p_params$sdlogit)
   p <- ilogit(logit_p)
   
-  phi_alpha       <- normal(1.454, 0.055, truncation = c(0, Inf))
-  phi_delta_alpha <- normal(1.421, 0.033, truncation = c(0, Inf))
-  phi_omicron <- 2.347662
+  phi_alpha       <- 1.454
+  phi_delta_alpha <- 1.421
+  phi_omicron_delta <- 1.170911
   
   phi_delta <- phi_alpha * phi_delta_alpha
+  phi_omicron <- phi_delta * phi_omicron_delta
   
            
            
@@ -10337,11 +10338,12 @@ simulate_variant <- function(
   prop_wt    <- prop_var$prop_wt
   
   
-  phi_alpha       <- normal(1.454, 0.055, truncation = c(0, Inf))
-  phi_delta_alpha <- normal(1.421, 0.033, truncation = c(0, Inf))
-  phi_omicron <- 2.347662
+  phi_alpha       <- 1.454
+  phi_delta_alpha <- 1.421
+  phi_omicron_delta <- 1.170911
   
   phi_delta <- phi_alpha * phi_delta_alpha
+  phi_omicron <- phi_delta * phi_omicron_delta
   
   if(variant == "wt") {
     prop_wt_hat    <- prop_wt    * 0 + 1

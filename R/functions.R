@@ -5338,7 +5338,8 @@ reff_model_data <- function(
   inducing_gap = 3,
   detection_cutoff = 0.95,
   notification_delay_cdf = NULL,
-  n_weeks_before = NULL
+  n_weeks_before = NULL,
+  start_date = NULL
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5367,18 +5368,24 @@ linelist <- linelist_raw %>%
   linelist_start_date <- min(linelist$date)
   latest_date <- max(linelist$date)
   
-  ############## The linelist up to this point is the full linelist and will be shortened
-  ##### dates defined below are shortened
+  ############## The linelist up to this point is the full linelist and will be
+  #####shortened dates defined below are shortened
   
   #the full dates corresponds to the full linelist
   full_dates <- seq(linelist_start_date, latest_date, by = 1)
   
-  if (is.null(n_weeks_before)) {
-    earliest_date <- linelist_start_date
-  } else {
-    earliest_date <-  linelist_date - n_weeks_before*7
-  }
   
+  if (is.null(n_weeks_before) & is.null(start_date)) 
+    {earliest_date <- linelist_start_date}
+  if (is.null(n_weeks_before) & !is.null(start_date)) 
+    {earliest_date <- start_date}
+  if (!is.null(n_weeks_before) & is.null(start_date)) 
+    {earliest_date <- linelist_date - n_weeks_before*7}
+  if (!is.null(n_weeks_before) & !is.null(start_date)) 
+    {earliest_date <- NULL}
+
+
+  if (is.null(earliest_date)) {stop("conflict between n_weeks_before and start_date!")}
   #all the dates below corresponds to the shortened period 
   states <- sort(unique(linelist$state))
   dates <- seq(earliest_date, latest_date, by = 1)
@@ -5409,7 +5416,7 @@ linelist <- linelist_raw %>%
   
   # the last date with infection data we include
   last_detectable_idx <- which(!apply(detectable, 1, any))[1]
-  latest_infection_date <- dates[ifelse(is.na(last_detectable_idx), length(dates), last_detectable_idx)]
+  latest_infection_date <- full_dates[ifelse(is.na(last_detectable_idx), length(full_dates), last_detectable_idx)]
   
 
   # those infected in the state
@@ -5894,11 +5901,6 @@ reff_model <- function(data, TP_obj = NULL) {
       log_R_eff_imp_1,
       R_eff_loc_12,
       R_eff_imp_12,
-      log_R0,
-      log_Qt,
-      distancing_effect,
-      surveillance_reff_local_reduction,
-      #extra_isolation_local_reduction,
       log_R_eff_loc,
       log_R_eff_imp,
       epsilon_L,
@@ -6245,67 +6247,69 @@ constrain_run_length <- function(x, min_run_length = 7) {
 
 reff_plotting_sims <- function(
   fitted_model,
-  refitted_model = fitted_model,
   #vaccine_timeseries = vaccine_effect_timeseries,
-  nsim = 10000
-){
+  nsim = 10000,
+  plot_reff_trajectory = TRUE,
+  plot_TP_trajectory = TRUE)
+  {
   # add counterfactuals to the model object:
   # add fitted_model_extended obect because fitted_model is modified
-  fitted_model_extended <- refitted_model
+  fitted_model_extended <- fitted_model
   
-  vaccine_timeseries <- as_tibble(refitted_model$data$vaccine_effect_matrix) %>%
-    mutate(date = refitted_model$data$dates$infection_project) %>%
+  vaccine_timeseries <- as_tibble(fitted_model$data$vaccine_effect_matrix) %>%
+    mutate(date = fitted_model$data$dates$infection_project) %>%
     pivot_longer(cols = -date, names_to = "state", values_to = "effect")
   
-  # Reff for locals component 1 under
-  # only micro/macro/surveillance improvements
-  fitted_model_extended$greta_arrays <- c(
-    refitted_model$greta_arrays,
-    list(
-      R_eff_loc_1_macro = reff_1_only_macro(fitted_model_extended),
-      R_eff_loc_1_micro = reff_1_only_micro(fitted_model_extended),
-      R_eff_loc_1_surv = reff_1_only_surveillance(fitted_model_extended),
-      R_eff_loc_1_iso = reff_1_only_extra_isolation(fitted_model_extended),
-      R_eff_loc_1_ttiq = reff_1_only_ttiq(fitted_model_extended),
-      R_eff_loc_1_vaccine_only = reff_1_vaccine_only(fitted_model_extended, vaccine_timeseries),
-      R_eff_loc_1_without_vaccine = reff_1_without_vaccine(fitted_model_extended, vaccine_timeseries),
-      R_eff_12_1_ratio = reff_C12_C1_ratio(fitted_model_extended)
-    ) 
-  )
-  
-  # flatten all relevant greta array matrices to vectors before calculating
-  trajectory_types_TP <- c(
-    "R_eff_loc_1_macro",
-    "R_eff_loc_1_surv",
-    "R_eff_loc_1_iso",
-    "R_eff_loc_1_ttiq",
-    "R_eff_loc_1_without_vaccine",
-    "R_eff_loc_1",
-    "R_eff_imp_1"
-  )
-  vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types_TP], c)
-  
-  # simulate from posterior for these quantities of interest
-  args <- c(vector_list, list(values = fitted_model$draws, nsim = nsim))
-  sims_TP <- do.call(calculate, args)
-  
-  #for reff trajectory
-  trajectory_types_reff <- c(
-    "R_eff_loc_12",
-    "R_eff_imp_12",
-    "epsilon_L",
-    "R_eff_12_1_ratio",
-    "R_eff_loc_1_micro",
-    "R_eff_loc_1_vaccine_only"
+  # define trajectory types to plot
+  if (plot_reff_trajectory) {
+    #reff and TP ratio
+    fitted_model_extended$greta_arrays <- c(
+      fitted_model$greta_arrays,
+      list(R_eff_12_1_ratio = reff_C12_C1_ratio(fitted_model_extended)
+    )
+    )
+    reff_trajectory <- c("R_eff_12_1_ratio",
+                        "R_eff_loc_12",
+                        "R_eff_imp_12",
+                        "epsilon_L")
+  } else { reff_trajectory <- NULL }
+  if (plot_TP_trajectory) {
     
+    # Reff for locals component 1 under
+    # only micro/macro/surveillance improvements
+    fitted_model_extended$greta_arrays <- c(
+      fitted_model$greta_arrays,
+      list(
+        R_eff_loc_1_macro = reff_1_only_macro(fitted_model_extended),
+        R_eff_loc_1_micro = reff_1_only_micro(fitted_model_extended),
+        R_eff_loc_1_surv = reff_1_only_surveillance(fitted_model_extended),
+        R_eff_loc_1_iso = reff_1_only_extra_isolation(fitted_model_extended),
+        R_eff_loc_1_ttiq = reff_1_only_ttiq(fitted_model_extended),
+        R_eff_loc_1_vaccine_only = reff_1_vaccine_only(fitted_model_extended, vaccine_timeseries),
+        R_eff_loc_1_without_vaccine = reff_1_without_vaccine(fitted_model_extended, vaccine_timeseries)
+      ) 
+    )
+    
+    TP_trajectory <- c("R_eff_loc_1",
+                      "R_eff_imp_1",
+                      "R_eff_loc_1_micro",
+                      "R_eff_loc_1_macro",
+                      "R_eff_loc_1_surv",
+                      "R_eff_loc_1_iso",
+                      "R_eff_loc_1_ttiq",
+                      "R_eff_loc_1_vaccine_only",
+                      "R_eff_loc_1_without_vaccine")
+  } else { TP_trajectory <- NULL }
+  # flatten all relevant greta array matrices to vectors before calculating
+  trajectory_types <- c(
+TP_trajectory,reff_trajectory
   )
-  vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types_reff], c)
+  vector_list <- lapply(fitted_model_extended$greta_arrays[trajectory_types], c)
   
   # simulate from posterior for these quantities of interest
-  args <- c(vector_list, list(values = refitted_model$draws, nsim = nsim))
-  sims_reff <- do.call(calculate, args)
+  args <- c(vector_list, list(values = fitted_model_extended$draws, nsim = nsim))
+  sims <- do.call(calculate, args)
   
-  sims <- c(sims_TP,sims_reff)
   return(sims)
 }
 

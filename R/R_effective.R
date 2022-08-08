@@ -14,10 +14,10 @@ linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = old_delay_cdf,
-                        n_weeks_before = 12)
+                        start_date = as_date("2021-06-01"))
 #check data date
 data$dates$linelist
-
+data$dates$earliest
 # save the key dates for Freya and David to read in, (deprecated) and tabulated
 # local cases data for the Robs
 
@@ -28,7 +28,7 @@ write_reff_key_dates(data)
 #update_past_cases()
 
 # reload saved fitted model for the TP component
-fitted_model <- readRDS("outputs/fitted_reff_split_pipeline_2021_10_18.RDS")
+fitted_model <- readRDS("outputs/fitted_full_reff_model.RDS")
 
 #get TP params 
 fitted_TP_params <- fitted_model$greta_arrays$TP_params
@@ -113,7 +113,7 @@ reff_plotting(
 
 # most recent six months
 reff_plotting(
-  fitted_model,
+  refitted_model,
   dir = "outputs",
   subdir = "figures/six_month",
   min_date = NA,
@@ -122,21 +122,21 @@ reff_plotting(
 
 # most recent month
 reff_plotting(
-  fitted_model,
+  refitted_model,
   dir = "outputs",
   subdir = "figures/one_month",
-  min_date = fitted_model$data$dates$latest_mobility - months(1),
+  min_date = refitted_model$data$dates$latest_mobility - days(30),
   sims = sims
 )
 
 
 # most recent month no nowcast
 reff_plotting(
-  fitted_model,
+  refitted_model,
   dir = "outputs",
   subdir = "figures/one_month/no_nowcast",
-  min_date = fitted_model$data$dates$latest_mobility - months(1),
-  max_date = fitted_model$data$dates$latest_infection,
+  min_date = refitted_model$data$dates$latest_mobility - days(30),
+  max_date = refitted_model$data$dates$latest_infection,
   sims = sims,
   mobility_extrapolation_rectangle = FALSE
 )
@@ -144,34 +144,34 @@ reff_plotting(
 
 # most recent six months no nowcast
 reff_plotting(
-  fitted_model,
+  refitted_model,
   dir = "outputs",
   subdir = "figures/six_month/no_nowcast",
   min_date = NA,
-  max_date = fitted_model$data$dates$latest_infection,
+  max_date = refitted_model$data$dates$latest_infection,
   sims = sims,
   mobility_extrapolation_rectangle = FALSE
 )
 
 # projection plots 
 reff_plotting(
-  fitted_model,  
+  refitted_model,  
   dir = "outputs/projection",
-  max_date = fitted_model$data$dates$latest_project,
+  max_date = refitted_model$data$dates$latest_project,
   mobility_extrapolation_rectangle = FALSE,
-  projection_date = fitted_model$data$dates$latest_mobility,
+  projection_date = refitted_model$data$dates$latest_mobility,
   sims = sims
 )
 
 # 6-month projection plots
 reff_plotting(
-  fitted_model,
+  refitted_model,
   dir = "outputs/projection",
   subdir = "figures/six_month",
   min_date = NA,
-  max_date = fitted_model$data$dates$latest_project,
+  max_date = refitted_model$data$dates$latest_project,
   mobility_extrapolation_rectangle = FALSE,
-  projection_date = fitted_model$data$dates$latest_mobility,
+  projection_date = refitted_model$data$dates$latest_mobility,
   sims = sims
 )
 
@@ -195,7 +195,7 @@ simulate_variant(
   subdir = "omicron_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Omicron BA2", 
-           date <= max(fitted_model$data$dates$infection_project)) %>% 
+           date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
 
@@ -205,7 +205,7 @@ simulate_variant(
   subdir = "delta_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Delta", 
-           date <= max(fitted_model$data$dates$infection_project)) %>% 
+           date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
 
@@ -215,7 +215,7 @@ simulate_variant(
   subdir = "omicron_BA4_vax",
   vax_effect = vaccine_effect_timeseries %>% 
     filter(variant == "Omicron BA4/5", 
-           date <= max(fitted_model$data$dates$infection_project)) %>% 
+           date <= max(refitted_model$data$dates$infection_project)) %>% 
     select(-variant,-percent_reduction)
 )
 
@@ -231,7 +231,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA2", 
-      date <= max(fitted_model$data$dates$infection_project),
+      date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
     select(-variant,-percent_reduction, -ascertainment)
@@ -244,7 +244,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Delta", 
-      date <= max(fitted_model$data$dates$infection_project),
+      date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
     select(-variant,-percent_reduction, -ascertainment)
@@ -256,7 +256,7 @@ simulate_variant(
   vax_effect = combined_effect_timeseries_full %>% 
     filter(
       variant == "Omicron BA4/5", 
-      date <= max(fitted_model$data$dates$infection_project),
+      date <= max(refitted_model$data$dates$infection_project),
       ascertainment == 0.5
     ) %>% 
     select(-variant,-percent_reduction, -ascertainment)

@@ -13,8 +13,10 @@ sync_nndss()
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
-                        notification_delay_cdf = old_delay_cdf,
+                        notification_delay_cdf = NULL,
                         start_date = as_date("2021-06-01"))
+#normally start from 2021-06-01 as per Rob M's request
+
 #check data date
 data$dates$linelist
 data$dates$earliest
@@ -27,6 +29,10 @@ write_reff_key_dates(data)
 # format and write out any new linelists to the past_cases folder for Rob H
 #update_past_cases()
 
+# if need to fit TP, skip the following TP calculations and fit reff model with
+# TP_obj = NULL
+
+# to use fitted tp model:
 # reload saved fitted model for the TP component
 fitted_model <- readRDS("outputs/fitted_full_reff_model.RDS")
 
@@ -51,21 +57,25 @@ predicted_TP_obj <- list(R_eff_imp_1 = apply(fitted_TP_calculations_draws$R_eff_
                                              mean),
                          R_eff_loc_1 = apply(fitted_TP_calculations_draws$R_eff_loc_1,
                                              2:3,
-                                             mean))
+                                             mean),
+                         log_R0 = fitted_TP_calculations$log_R0,
+                         log_Qt = fitted_TP_calculations$log_Qt,
+                         distancing_effect = fitted_TP_calculations$distancing_effect,
+                         surveillance_reff_local_reduction = fitted_TP_calculations$surveillance_reff_local_reduction)
 
 #fit reff-only model
 system.time(
   
   refitted_model <- fit_reff_model(data,warmup = 500,
-                                   init_n_samples = 2000,
-                                   max_tries = 2, 
+                                   init_n_samples = 4000,
+                                   max_tries = 1, 
                                    iterations_per_step = 2000,
                                    TP_obj = predicted_TP_obj)
 )
 
 # save the fitted model object
 saveRDS(refitted_model, "outputs/fitted_reff_only_model.RDS")
-# fitted_model <- readRDS("outputs/fitted_full_reff_model.RDS")
+# saveRDS(refitted_model, "outputs/fitted_full_reff_model.RDS")
 
 
 # # visual checks of model fit
@@ -431,3 +441,117 @@ write_csv(
   file = paste0("outputs/nsw_tp_no_immunity_",data$dates$linelist,".csv")
 )
 
+##### behaviour only multiplier
+
+#calculate TP if only behaviour changed (Rt)
+
+#get TP without immunity
+TP_no_vax <- reff_1_without_vaccine(fitted_model, vaccine_effect = as_tibble(fitted_model$data$vaccine_effect_matrix) %>%
+                                             mutate(date = fitted_model$data$dates$infection_project) %>%
+                                             pivot_longer(cols = -date, names_to = "state", values_to = "effect"))
+
+TP_no_vax <- calculate(TP_no_vax, nsim = 10000, values = fitted_model$draws)
+TP_no_vax <- apply(TP_no_vax[[1]],2:3,mean)
+TP_no_vax <- TP_no_vax[1:length(fitted_model$data$dates$infection),]
+
+#back out surveillance
+surveillance_reff_local_reduction <- fitted_model$greta_arrays$surveillance_reff_local_reduction[1:length(fitted_model$data$dates$infection),]
+
+R_t <- TP_no_vax/surveillance_reff_local_reduction
+
+#calculate R0
+
+#pull out all baseline params
+p_star <- calculate(fitted_model$greta_arrays$distancing_effect$p_star,
+                    nsim = 10000,
+                    values = fitted_model$draws)
+p_star <- apply(p_star[[1]],2:3,mean)
+
+p_star <- p_star[1:length(fitted_model$data$dates$infection),]
+
+HC_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HC_0),
+                    nsim = 10000,
+                    values = fitted_model$draws)
+HC_0 <- c(apply(HC_0[[1]],2:3,mean))
+
+HD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HD_0),
+                  nsim = 10000,
+                  values = fitted_model$draws)
+HD_0 <- c(apply(HD_0[[1]],2:3,mean))
+
+OD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$OD_0),
+                  nsim = 10000,
+                  values = fitted_model$draws)
+OD_0 <- c(apply(OD_0[[1]],2:3,mean))
+
+OC_0 <- fitted_model$greta_arrays$distancing_effect$OC_0
+
+infectious_days <- infectious_period(gi_cdf)
+OC_0 <- trends_date_state(
+  "outputs/macrodistancing_trends.RDS",
+  fitted_model$greta_arrays$distancing_effect$dates
+)
+
+household <- HC_0 * (1 - p_star ^ HD_0) 
+non_household <- OC_0 * infectious_days * (1 - p_star ^ OD_0)
+R0 <- household + non_household
+unique(R0)
+
+#ratio of Rt/R0
+R_t_R0_ratio <- R_t/R0
+
+distance_effect_multi <- tibble(value = c(R_t_R0_ratio),
+                          state = rep(fitted_model$data$states, each = length(fitted_model$data$dates$infection)),
+                          date = rep(fitted_model$data$dates$infection, fitted_model$data$n_states))
+
+#plot
+distance_effect_multi %>% ggplot(aes(x = date, y = value, col = state)) + 
+  geom_vline(
+    aes(xintercept = date),
+    data = interventions(),
+    colour = alpha("grey75",0.5)
+  ) + 
+  geom_line()  + facet_wrap(~ state, ncol = 2) + 
+  theme_classic() +
+  labs(
+    x = NULL,
+    y = "Multiplier",
+    col = "State"
+  )  +
+  ggtitle(
+    label = "Multiplicative reduction in transmission due to behavioral change"
+  ) +
+  cowplot::theme_cowplot() +
+  cowplot::panel_border(remove = TRUE) +
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(hjust = 0, face = "bold"),
+    axis.title.y.right = element_text(vjust = 0.5, angle = 90),
+    panel.spacing = unit(1.2, "lines")
+  ) +
+  scale_colour_manual(
+    values = c(
+      "darkgray",
+      "cornflowerblue",
+      "chocolate1",
+      "violetred4",
+      "red1",
+      "darkgreen",
+      "darkblue",
+      "gold1"
+    )
+  ) +
+  #facet_wrap(~variant, ncol = 1) +
+  geom_hline(
+    aes(
+      yintercept = 0
+    ),
+    linetype = "dotted"
+  ) +    scale_x_date(date_breaks = "2 month", date_labels = "%m") +
+  scale_linetype_manual(values = c(1,3)) +
+  
+  xlab(element_blank())
+
+ggsave("outputs/figures/distancing_effect_multiplier.png",width = 13, height = 6)
+
+write_csv(distance_effect_multi,file = "outputs/distancing_effect_multiplier.csv")

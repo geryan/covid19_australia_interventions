@@ -446,6 +446,55 @@ local_cases <- read_csv("outputs/local_cases_input.csv") %>%
   ) %>%
   filter(date <= data_date)
 
+# hack in time varying ascertainment
+
+#case ascertainment assumptions
+date_seq_asc <- seq.Date(
+  from = as.Date("2021-12-01"),
+  to = Sys.Date() + weeks(16),
+  by = "1 week"
+)
+case_ascertainment_tables <- tibble(date = date_seq_asc)
+
+# NSW, VIC, ACT and QLD
+# Case ascertainment at 75% from 1 December 2021, drop to 33.3% from
+# 12 December 2021 to 22 January 2022, and return to 75% by 23 January
+# 2022.
+
+# WA, SA, NT, and TAS
+# Assume constant 75% case ascertainment from 1 December 2021
+
+date_state_ascertainment <- expand_grid(date = seq.Date(
+  from = min(case_ascertainment_tables$date),
+  to = max(case_ascertainment_tables$date),
+  by = 1
+),
+state = states) %>% # states = sort(unique(linelist$state)
+  mutate(
+    ascertainment = case_when(
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2021-12-01") & (date < "2021-12-12") ~ 0.75,
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2021-12-20") & (date < "2022-01-16") ~ 0.33,
+      state %in% c("NSW", "ACT", "VIC", "QLD") &
+        (date >= "2022-01-23") ~ 0.75,
+      state %in% c("WA", "NT", "SA", "TAS") ~ 0.75,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  arrange(state) %>%
+  mutate(ascertainment = zoo::na.approx(ascertainment))
+
+
+#divide local cases by ascertainment rates
+local_cases <- local_cases %>% 
+  left_join(date_state_ascertainment, by = c("date","state")) %>% 
+  mutate(ascertainment = replace_na(ascertainment,1))
+
+local_cases <- local_cases %>% 
+  mutate(cases = cases/ascertainment) %>% 
+  select(-ascertainment)
+
 # ascertainment_rates <- c(
 #   1,
 #   0.9,
@@ -457,7 +506,9 @@ local_cases <- read_csv("outputs/local_cases_input.csv") %>%
 #   0.3#,
 #   #0.2
 # )
-ascertainment_rates <- c(0.5, 0.75)
+
+#constant 1 as placeholder ascertainment rate
+ascertainment_rates <- 1
 
 omicron_infections <- get_omicron_infections(
   local_cases,

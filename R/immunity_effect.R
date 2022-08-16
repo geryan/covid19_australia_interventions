@@ -486,14 +486,14 @@ state = states) %>% # states = sort(unique(linelist$state)
   mutate(ascertainment = zoo::na.approx(ascertainment))
 
 
-#divide local cases by ascertainment rates
-local_cases <- local_cases %>% 
-  left_join(date_state_ascertainment, by = c("date","state")) %>% 
-  mutate(ascertainment = replace_na(ascertainment,1))
-
-local_cases <- local_cases %>% 
-  mutate(cases = cases/ascertainment) %>% 
-  select(-ascertainment)
+# #divide local cases by ascertainment rates
+# local_cases <- local_cases %>% 
+#   left_join(date_state_ascertainment, by = c("date","state")) %>% 
+#   mutate(ascertainment = replace_na(ascertainment,1))
+# 
+# local_cases <- local_cases %>% 
+#   mutate(cases = cases/ascertainment) %>% 
+#   select(-ascertainment)
 
 # ascertainment_rates <- c(
 #   1,
@@ -508,11 +508,11 @@ local_cases <- local_cases %>%
 # )
 
 #constant 1 as placeholder ascertainment rate
-ascertainment_rates <- 1
+#ascertainment_rates <- 1
 
-omicron_infections <- get_omicron_infections(
+omicron_infections <- get_infections(
   local_cases,
-  ascertainment_rates,
+  date_state_ascertainment,
   state_population
 )
 

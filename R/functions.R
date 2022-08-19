@@ -2636,12 +2636,15 @@ distancing_effect_model <- function(
   prop_delta <- prop_var$prop_delta
   prop_omicron <- prop_var$prop_omicron
   prop_wt    <- prop_var$prop_wt
+  prop_omicron_BA4 <- prop_var$prop_omicron_BA4
+  
   
   if(voc_mixture == "alpha") {
     prop_wt <- prop_wt * 0
     prop_alpha <- prop_alpha * 0 + 1
     prop_delta <- prop_delta * 0
     prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
   if(voc_mixture == "delta") {
@@ -2649,6 +2652,7 @@ distancing_effect_model <- function(
     prop_alpha <- prop_alpha * 0 
     prop_delta <- prop_delta * 0 + 1
     prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
   if(voc_mixture == "omicron") {
@@ -2656,6 +2660,7 @@ distancing_effect_model <- function(
     prop_alpha <- prop_alpha * 0 
     prop_delta <- prop_delta * 0
     prop_omicron <- prop_omicron * 0 + 1
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
   if(voc_mixture == "wt") {
@@ -2663,14 +2668,22 @@ distancing_effect_model <- function(
     prop_alpha <- prop_alpha * 0 
     prop_delta <- prop_delta * 0
     prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
+  if(voc_mixture == "omicron_BA4") {
+    prop_wt <- prop_wt * 0
+    prop_alpha <- prop_alpha * 0 
+    prop_delta <- prop_delta * 0
+    prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0 + 1
+  }
   
 attach(phi_params)
   
 attach(contact_params)
   
-  phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron
+  phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron + prop_omicron_BA4 * phi_omicron_BA4
   
   p_star <- p ^ phi_star
   
@@ -4175,7 +4188,8 @@ ttd_survival <- function(days, dates, target_state, cdfs = NULL) {
 # returna date-by-state matrix of reduction in R due to faster detection of cases
 surveillance_effect <- function(dates, states, cdf,
                                 gi_bounds = c(0, 20),
-                                ttd_cdfs = NULL) {
+                                ttd_cdfs = NULL,
+                                ascertainment_rate = 1) {
   
   n_dates <- length(dates)
   n_states <- length(states)
@@ -4203,6 +4217,8 @@ surveillance_effect <- function(dates, states, cdf,
     date_state_mat[, i] <- c(ttd_days %*% gi_days)
     
   }
+  
+  date_state_mat <- 1 - ((1 - date_state_mat) * ascertainment_rate)
   
   date_state_mat
   
@@ -5566,6 +5582,10 @@ linelist <- linelist_raw %>%
     filter(variant == "Delta") %>%
     select(date, state, effect)
   
+  ve_omicron_BA4 <- vaccine_effect_timeseries %>%
+    filter(variant == "Omicron BA4/5") %>%
+    select(date, state, effect)
+  
   vaccine_effect_matrix_delta <- ve_delta %>%
     pivot_wider(
       names_from = state,
@@ -5598,14 +5618,36 @@ linelist <- linelist_raw %>%
     dplyr::select(-date) %>%
     as.matrix
   
+  vaccine_effect_matrix_omicron_BA4 <- ve_omicron_BA4 %>%
+    pivot_wider(
+      names_from = state,
+      values_from = effect
+    ) %>%
+    right_join(
+      y = tibble(date = dates_project)
+    ) %>%
+    arrange(date) %>%
+    tidyr::fill(
+      everything(),
+      .direction = "updown"
+    ) %>%
+    dplyr::select(-date) %>%
+    as.matrix
+  
   
   omicron_matrix <- prop_variant(dates_project)$prop_omicron
   
   omicron_index <- which(omicron_matrix == 1)
   
+  omicron_BA4_matrix <- prop_variant(dates_project)$prop_omicron_BA4
+  
+  omicron_BA4_index <- which(omicron_BA4_matrix == 1)
+  
   vaccine_effect_matrix <- vaccine_effect_matrix_delta
   
   vaccine_effect_matrix[omicron_index] <- vaccine_effect_matrix_omicron[omicron_index]
+  
+  vaccine_effect_matrix[omicron_BA4_index] <- vaccine_effect_matrix_omicron_BA4[omicron_BA4_index]
   
   vaccine_dates <- unique(vaccine_effect_timeseries$date)
   
@@ -5731,9 +5773,11 @@ TP_params <- function(){
   phi_alpha       <- 1.454
   phi_delta_alpha <- 1.421
   phi_omicron_delta <- 1.170911
+  phi_omicron_BA2_BA4 <- 1
   
   phi_delta <- phi_alpha * phi_delta_alpha
   phi_omicron <- phi_delta * phi_omicron_delta
+  phi_omicron_BA4 <- phi_omicron * phi_omicron_BA2_BA4
   
            
            
@@ -5748,7 +5792,8 @@ module(log_q,
        phi_params = module(
        phi_alpha,
        phi_delta,
-       phi_omicron))
+       phi_omicron,
+       phi_omicron_BA4))
 }
 
 TP_only_likelihood <- function(data,
@@ -5777,11 +5822,14 @@ TP_only_model <- function(data) {
 
 TP_only_calculations <- function(data,
                                  params) {
+  
+  
   # reduction in R due to surveillance detecting and isolating infectious people
   surveillance_reff_local_reduction <- surveillance_effect(
     dates = data$dates$infection_project,
     cdf = gi_cdf,
-    states = data$states
+    states = data$states,
+    ascertainment_rate = data$ascertainment_matrix
   )
   
   

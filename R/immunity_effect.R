@@ -511,8 +511,9 @@ state = states) %>% # states = sort(unique(linelist$state)
 #ascertainment_rates <- 1
 
 omicron_infections <- get_infections(
-  local_cases,
-  date_state_ascertainment,
+  local_cases = local_cases,
+  constant_ascertainment = FALSE, ascertainment_rate = 0.25,
+  time_varying_ascertainment = date_state_ascertainment,
   state_population
 )
 

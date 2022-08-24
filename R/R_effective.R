@@ -14,7 +14,7 @@ linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
 #old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
-                        start_date = NULL)
+                        start_date = as_date("2022-06-30"))
 #normally start from 2021-06-01 as per Rob M's request
 
 #check data date
@@ -35,6 +35,30 @@ write_reff_key_dates(data)
 # to use fitted tp model:
 # reload saved fitted model for the TP component
 fitted_model <- readRDS("outputs/fitted_full_reff_model.RDS")
+
+#calculate baseline contact params from the full TP model for later calculations
+
+HC_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HC_0),
+                  nsim = 10000,
+                  values = fitted_model$draws)
+HC_0 <- c(apply(HC_0[[1]],2:3,mean))
+
+HD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HD_0),
+                  nsim = 10000,
+                  values = fitted_model$draws)
+HD_0 <- c(apply(HD_0[[1]],2:3,mean))
+
+OD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$OD_0),
+                  nsim = 10000,
+                  values = fitted_model$draws)
+OD_0 <- c(apply(OD_0[[1]],2:3,mean))
+
+OC_0 <- fitted_model$greta_arrays$distancing_effect$OC_0
+
+infectious_days <- infectious_period(gi_cdf)
+
+
+
 
 #get TP params 
 fitted_TP_params <- fitted_model$greta_arrays$TP_params
@@ -346,17 +370,6 @@ r2 <- BA4_TP %>%
 r2.post <- r2 %>% filter(date >= vacc.start)
 
 
-
-# r3 <- omicron_combined %>% 
-#   reshape2::melt(id.vars = c("date","state","date_onset")) %>%
-#   group_by(date,state) %>% 
-#   summarise(x = quantile(value, qs), q = qs) %>% 
-#   reshape2::dcast(state+date ~ q, value.var = "x") %>%
-#   rename("L90"="0.05", "L50"="0.25", "med"="0.5", "U50"="0.75", "U90"="0.95")  %>% filter(date <= end.date)
-# 
-# r3.post <- r3 %>% filter(date >= "2021-12-01")
-
-
 # Plot aesthetics
 outer.alpha <- 0.15
 inner.alpha <- 0.4
@@ -460,8 +473,6 @@ surveillance_reff_local_reduction <- fitted_model$greta_arrays$surveillance_reff
 R_t <- TP_no_vax/surveillance_reff_local_reduction
 
 #calculate R0
-
-#pull out all baseline params
 p_star <- calculate(fitted_model$greta_arrays$distancing_effect$p_star,
                     nsim = 10000,
                     values = fitted_model$draws)
@@ -469,33 +480,11 @@ p_star <- apply(p_star[[1]],2:3,mean)
 
 p_star <- p_star[1:length(fitted_model$data$dates$infection),]
 
-HC_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HC_0),
-                    nsim = 10000,
-                    values = fitted_model$draws)
-HC_0 <- c(apply(HC_0[[1]],2:3,mean))
-
-HD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$HD_0),
-                  nsim = 10000,
-                  values = fitted_model$draws)
-HD_0 <- c(apply(HD_0[[1]],2:3,mean))
-
-OD_0 <- calculate(c(fitted_model$greta_arrays$distancing_effect$OD_0),
-                  nsim = 10000,
-                  values = fitted_model$draws)
-OD_0 <- c(apply(OD_0[[1]],2:3,mean))
-
-OC_0 <- fitted_model$greta_arrays$distancing_effect$OC_0
-
-infectious_days <- infectious_period(gi_cdf)
-# OC_0 <- trends_date_state(
-#   "outputs/macrodistancing_trends.RDS",
-#   fitted_model$greta_arrays$distancing_effect$dates
-# )
-
 household <- HC_0 * (1 - p_star ^ HD_0) 
 non_household <- OC_0 * infectious_days * (1 - p_star ^ OD_0)
 R0 <- household + non_household
 unique(R0)
+
 
 #ratio of Rt/R0
 R_t_R0_ratio <- R_t/R0

@@ -11,10 +11,10 @@ sync_nndss()
 
 # prepare data for Reff modelling
 linelist <- readRDS("outputs/commonwealth_ll_imputed_old_method.RDS")
-old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
+#old_delay_cdf <- readRDS("outputs/old_method_delay_cdf.RDS")
 data <- reff_model_data(linelist_raw = linelist,
                         notification_delay_cdf = NULL,
-                        start_date = as_date("2021-06-01"))
+                        start_date = NULL)
 #normally start from 2021-06-01 as per Rob M's request
 
 #check data date
@@ -487,10 +487,10 @@ OD_0 <- c(apply(OD_0[[1]],2:3,mean))
 OC_0 <- fitted_model$greta_arrays$distancing_effect$OC_0
 
 infectious_days <- infectious_period(gi_cdf)
-OC_0 <- trends_date_state(
-  "outputs/macrodistancing_trends.RDS",
-  fitted_model$greta_arrays$distancing_effect$dates
-)
+# OC_0 <- trends_date_state(
+#   "outputs/macrodistancing_trends.RDS",
+#   fitted_model$greta_arrays$distancing_effect$dates
+# )
 
 household <- HC_0 * (1 - p_star ^ HD_0) 
 non_household <- OC_0 * infectious_days * (1 - p_star ^ OD_0)

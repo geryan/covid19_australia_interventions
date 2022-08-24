@@ -5375,7 +5375,8 @@ reff_model_data <- function(
   detection_cutoff = 0.95,
   notification_delay_cdf = NULL,
   n_weeks_before = NULL,
-  start_date = NULL
+  start_date = NULL,
+  immunity_effect_path = "outputs/vaccination_effect.RDS"
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5572,7 +5573,7 @@ linelist <- linelist_raw %>%
   
   
   
-  vaccine_effect_timeseries <- readRDS("outputs/vaccination_effect.RDS")
+  vaccine_effect_timeseries <- readRDS(immunity_effect_path)
   
   ve_omicron <- vaccine_effect_timeseries %>%
     filter(variant == "Omicron BA2") %>%
@@ -12202,40 +12203,80 @@ split_ticks_and_labels <- function(
 
 get_infections <- function(
   local_cases,
-  ascertainment = date_state_ascertainment,
+  constant_ascertainment = TRUE,
+  ascertainment_rates = 0.5,
+  time_varying_ascertainment = date_state_ascertainment,
   state_population
 ){
   
-  omicron_infections_only <- local_cases %>%
-    mutate(
-      year = year(date) %>% as.integer,
-      week = isoweek(date) %>% as.integer,
-      month = month(date) %>% as.integer,
-      yearweek = if_else(
-        week == 52 & month == 1,
-        sprintf("%s%02d", year - 1, week),
-        sprintf("%s%02d", year, week)
+  if (constant_ascertainment) {
+    omicron_infections_only <- local_cases %>%
+      mutate(
+        year = year(date) %>% as.integer,
+        week = isoweek(date) %>% as.integer,
+        month = month(date) %>% as.integer,
+        yearweek = if_else(
+          week == 52 & month == 1,
+          sprintf("%s%02d", year - 1, week),
+          sprintf("%s%02d", year, week)
+        )
+      ) %>%
+      group_by(state, yearweek) %>%
+      mutate(
+        num_people = sum(cases)
+      ) %>%
+      filter(date == min(date)) %>%
+      ungroup %>%
+      mutate(
+        num_people = if_else(
+          date < "2021-12-01",
+          0,
+          num_people
+        )
+      ) %>%
+      select(date, state, num_people) %>%
+      expand_grid(
+        ascertainment = ascertainment_rates
+      ) %>%
+      mutate(
+        num_people = num_people/ascertainment
       )
-    ) %>%
-    group_by(state, yearweek) %>%
-    mutate(
-      num_people = sum(cases)
-    ) %>%
-    filter(date == min(date)) %>%
-    ungroup %>%
-    mutate(
-      num_people = if_else(
-        date < "2021-12-01",
-        0,
-        num_people
-      )
-    ) %>%
-    select(date, state, num_people) %>%
-    left_join(ascertainment,by = c("date", "state")) %>% 
-    mutate(ascertainment = replace_na(ascertainment,replace = 1)) %>% 
-    mutate(
-      num_people = num_people/ascertainment
-    ) %>% select(-ascertainment)
+    
+  } else {
+    
+    omicron_infections_only <- local_cases %>%
+      mutate(
+        year = year(date) %>% as.integer,
+        week = isoweek(date) %>% as.integer,
+        month = month(date) %>% as.integer,
+        yearweek = if_else(
+          week == 52 & month == 1,
+          sprintf("%s%02d", year - 1, week),
+          sprintf("%s%02d", year, week)
+        )
+      ) %>%
+      group_by(state, yearweek) %>%
+      mutate(
+        num_people = sum(cases)
+      ) %>%
+      filter(date == min(date)) %>%
+      ungroup %>%
+      mutate(
+        num_people = if_else(
+          date < "2021-12-01",
+          0,
+          num_people
+        )
+      ) %>%
+      select(date, state, num_people) %>%
+      left_join(date_state_ascertainment,by = c("date", "state")) %>% 
+      mutate(ascertainment = replace_na(ascertainment,replace = 1)) %>% 
+      mutate(
+        num_people = num_people/ascertainment
+      ) %>% select(-ascertainment)
+  }
+  
+
   
   
   not_infected <- omicron_infections_only %>% 

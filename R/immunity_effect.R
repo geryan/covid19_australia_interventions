@@ -486,14 +486,14 @@ state = states) %>% # states = sort(unique(linelist$state)
   mutate(ascertainment = zoo::na.approx(ascertainment))
 
 
-#divide local cases by ascertainment rates
-local_cases <- local_cases %>% 
-  left_join(date_state_ascertainment, by = c("date","state")) %>% 
-  mutate(ascertainment = replace_na(ascertainment,1))
-
-local_cases <- local_cases %>% 
-  mutate(cases = cases/ascertainment) %>% 
-  select(-ascertainment)
+# #divide local cases by ascertainment rates
+# local_cases <- local_cases %>% 
+#   left_join(date_state_ascertainment, by = c("date","state")) %>% 
+#   mutate(ascertainment = replace_na(ascertainment,1))
+# 
+# local_cases <- local_cases %>% 
+#   mutate(cases = cases/ascertainment) %>% 
+#   select(-ascertainment)
 
 # ascertainment_rates <- c(
 #   1,
@@ -508,11 +508,12 @@ local_cases <- local_cases %>%
 # )
 
 #constant 1 as placeholder ascertainment rate
-ascertainment_rates <- 1
+#ascertainment_rates <- 1
 
-omicron_infections <- get_omicron_infections(
-  local_cases,
-  ascertainment_rates,
+omicron_infections <- get_infections(
+  local_cases = local_cases,
+  constant_ascertainment = FALSE, ascertainment_rate = 0.25,
+  time_varying_ascertainment = date_state_ascertainment,
   state_population
 )
 
@@ -790,8 +791,7 @@ combined_effect_timeseries %>%
       x = date,
       y = effect,
       colour = state,
-      linetype = variant,
-      alpha = ascertainment
+      linetype = variant
     ),
     size = 1
   ) +
@@ -800,8 +800,7 @@ combined_effect_timeseries %>%
     x = NULL,
     y = "Change in transmission potential",
     col = NULL,
-    linetype = "Sub-variant",
-    alpha = "Ascertainment rate"
+    linetype = "Sub-variant"
   ) +
   scale_x_date(
     # breaks = ie_short_labels$ticks,
@@ -811,20 +810,20 @@ combined_effect_timeseries %>%
   ) +
   ggtitle(
     label = "Immunity effect",
-    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and infection with Omicron BA2 sub-variant, \nassuming 50% case ascertainment"
+    subtitle = "Change in transmission potential of Omicron sub-variants due to immunity from vaccination and Omicron infections, \nassuming time-varying case ascertainment"
   ) +
   cowplot::theme_cowplot() +
   cowplot::panel_border(remove = TRUE) +
   theme(
     strip.background = element_blank(),
     axis.title.y.right = element_text(vjust = 0.5, angle = 90, size = font_size),
-    legend.position = c(0.0, 0.1),
-    #legend.position = c(0.02, 0.18),
+    # legend.position = c(0.0, 0.15),
+    legend.position = "bottom",
     legend.text = element_text(size = font_size-2),
     axis.text = element_text(size = font_size),
     plot.title = element_text(size = font_size + 8),
     plot.subtitle = element_text(size = font_size)
-  ) +
+  )+
   scale_colour_manual(
     values = c(
       "darkgray",
@@ -838,8 +837,8 @@ combined_effect_timeseries %>%
     )
   ) +
   guides(colour = "none") +
-  scale_alpha_manual(values = c(0.5,1)) +
-  scale_linetype_manual(values = c("dashed","solid")) + 
+  scale_alpha_manual(values = 1) +
+  scale_linetype_manual("Omicron sub-variant",values = c("dotted","solid" )) + 
   scale_y_continuous(
     position = "right",
     limits = c(0, 1),
@@ -850,19 +849,13 @@ combined_effect_timeseries %>%
       xintercept = data_date
     )
   ) +
-  facet_wrap(~state, ncol = 2) +
-  geom_line(
-    data = vaccination_effect_timeseries %>%
-      filter(date <= data_date, date >= "2021-12-07",  variant == "Omicron BA2"),
-    aes(x = date, y = effect),
-    linetype = "dashed"
+  geom_vline(
+    data = prop_variant_dates(),
+    aes(xintercept = date),
+    colour = "firebrick1",
+    linetype = 5
   ) +
-  geom_line(
-    data = vaccination_effect_timeseries %>%
-      filter(date <= data_date, date >= "2021-12-07", variant == "Omicron BA4/5"),
-    aes(x = date, y = effect),
-    linetype = "solid"
-  )
+  facet_wrap(~state, ncol = 2) 
 
 
 ggsave(

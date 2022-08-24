@@ -2491,42 +2491,51 @@ social_distancing_national <- function(dates, n_extra = 0) {
 
 prop_variant_dates <- function(){
   tibble::tribble(
-    ~state,        ~date, ~prop_wt, ~prop_alpha, ~prop_delta, ~prop_omicron,
-    "ACT",  "2020-01-01",        1,           0,           0,             0,
-    "NSW",  "2020-01-01",        1,           0,           0,             0,
-    "NT",   "2020-01-01",        1,           0,           0,             0,
-    "QLD",  "2020-01-01",        1,           0,           0,             0,
-    "SA",   "2020-01-01",        1,           0,           0,             0,
-    "TAS",  "2020-01-01",        1,           0,           0,             0,
-    "VIC",  "2020-01-01",        1,           0,           0,             0,
-    "WA",   "2020-01-01",        1,           0,           0,             0,
+    ~state,        ~date, ~prop_wt, ~prop_alpha, ~prop_delta, ~prop_omicron, ~ prop_omicron_BA4,
+    "ACT",  "2020-01-01",        1,           0,           0,             0,             0,
+    "NSW",  "2020-01-01",        1,           0,           0,             0,             0,
+    "NT",   "2020-01-01",        1,           0,           0,             0,             0,
+    "QLD",  "2020-01-01",        1,           0,           0,             0,             0,
+    "SA",   "2020-01-01",        1,           0,           0,             0,             0,
+    "TAS",  "2020-01-01",        1,           0,           0,             0,             0,
+    "VIC",  "2020-01-01",        1,           0,           0,             0,             0,
+    "WA",   "2020-01-01",        1,           0,           0,             0,             0,
     
-    "ACT",  "2021-01-27",        0,           1,           0,             0,
-    "NSW",  "2021-01-27",        0,           1,           0,             0,
-    "NT",   "2021-01-27",        0,           1,           0,             0,
-    "QLD",  "2021-01-27",        0,           1,           0,             0,
-    "SA",   "2021-01-27",        0,           1,           0,             0,
-    "TAS",  "2021-01-27",        0,           1,           0,             0,
-    "VIC",  "2021-01-27",        0,           1,           0,             0,
-    "WA",   "2021-01-27",        0,           1,           0,             0,
+    "ACT",  "2021-01-27",        0,           1,           0,             0,             0,
+    "NSW",  "2021-01-27",        0,           1,           0,             0,             0,
+    "NT",   "2021-01-27",        0,           1,           0,             0,             0,
+    "QLD",  "2021-01-27",        0,           1,           0,             0,             0,
+    "SA",   "2021-01-27",        0,           1,           0,             0,             0,
+    "TAS",  "2021-01-27",        0,           1,           0,             0,             0,
+    "VIC",  "2021-01-27",        0,           1,           0,             0,             0,
+    "WA",   "2021-01-27",        0,           1,           0,             0,             0,
     
-    "ACT",  "2021-06-07",        0,           0,           1,             0,
-    "NSW",  "2021-06-07",        0,           0,           1,             0,
-    "NT",   "2021-06-07",        0,           0,           1,             0,
-    "QLD",  "2021-06-07",        0,           0,           1,             0,
-    "SA",   "2021-06-07",        0,           0,           1,             0,
-    "TAS",  "2021-06-07",        0,           0,           1,             0,
-    "VIC",  "2021-06-07",        0,           0,           1,             0,
-    "WA",   "2021-06-07",        0,           0,           1,             0,
+    "ACT",  "2021-06-07",        0,           0,           1,             0,             0,
+    "NSW",  "2021-06-07",        0,           0,           1,             0,             0,
+    "NT",   "2021-06-07",        0,           0,           1,             0,             0,
+    "QLD",  "2021-06-07",        0,           0,           1,             0,             0,
+    "SA",   "2021-06-07",        0,           0,           1,             0,             0,
+    "TAS",  "2021-06-07",        0,           0,           1,             0,             0,
+    "VIC",  "2021-06-07",        0,           0,           1,             0,             0,
+    "WA",   "2021-06-07",        0,           0,           1,             0,             0,
     
-    "ACT",  "2021-12-01",        0,           0,           0,             1,
-    "NSW",  "2021-12-01",        0,           0,           0,             1,
-    "NT",   "2021-12-01",        0,           0,           0,             1,
-    "QLD",  "2021-12-01",        0,           0,           0,             1,
-    "SA",   "2021-12-01",        0,           0,           0,             1,
-    "TAS",  "2021-12-01",        0,           0,           0,             1,
-    "VIC",  "2021-12-01",        0,           0,           0,             1,
-    "WA",   "2021-12-01",        0,           0,           0,             1
+    "ACT",  "2021-12-01",        0,           0,           0,             1,             0,
+    "NSW",  "2021-12-01",        0,           0,           0,             1,             0,
+    "NT",   "2021-12-01",        0,           0,           0,             1,             0,
+    "QLD",  "2021-12-01",        0,           0,           0,             1,             0,
+    "SA",   "2021-12-01",        0,           0,           0,             1,             0,
+    "TAS",  "2021-12-01",        0,           0,           0,             1,             0,
+    "VIC",  "2021-12-01",        0,           0,           0,             1,             0,
+    "WA",   "2021-12-01",        0,           0,           0,             1,             0,
+    
+    "ACT",  "2022-07-01",        0,           0,           0,             0,             1,
+    "NSW",  "2022-07-01",        0,           0,           0,             0,             1,
+    "NT",   "2022-07-01",        0,           0,           0,             0,             1,
+    "QLD",  "2022-07-01",        0,           0,           0,             0,             1,
+    "SA",   "2022-07-01",        0,           0,           0,             0,             1,
+    "TAS",  "2022-07-01",        0,           0,           0,             0,             1,
+    "VIC",  "2022-07-01",        0,           0,           0,             0,             1,
+    "WA",   "2022-07-01",        0,           0,           0,             0,             1
   ) %>%
     mutate(
       date = as.Date(date)
@@ -2586,11 +2595,22 @@ prop_variant <- function(dates){
     dplyr::select(-date)%>%
     as.matrix
   
+  prop_omicron_BA4 <- df %>%
+    dplyr::select(state, date, prop_omicron_BA4) %>%
+    pivot_wider(
+      names_from = state,
+      values_from = prop_omicron_BA4
+    ) %>%
+    arrange(date) %>%
+    dplyr::select(-date)%>%
+    as.matrix
+  
   prop_variant <- list(
     "prop_wt"    = prop_wt,
     "prop_alpha" = prop_alpha,
     "prop_delta" = prop_delta,
-    "prop_omicron" = prop_omicron
+    "prop_omicron" = prop_omicron,
+    "prop_omicron_BA4" = prop_omicron_BA4
   )
   
   return(prop_variant)
@@ -2616,12 +2636,15 @@ distancing_effect_model <- function(
   prop_delta <- prop_var$prop_delta
   prop_omicron <- prop_var$prop_omicron
   prop_wt    <- prop_var$prop_wt
+  prop_omicron_BA4 <- prop_var$prop_omicron_BA4
+  
   
   if(voc_mixture == "alpha") {
     prop_wt <- prop_wt * 0
     prop_alpha <- prop_alpha * 0 + 1
     prop_delta <- prop_delta * 0
     prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
   if(voc_mixture == "delta") {
@@ -2629,6 +2652,7 @@ distancing_effect_model <- function(
     prop_alpha <- prop_alpha * 0 
     prop_delta <- prop_delta * 0 + 1
     prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
   if(voc_mixture == "omicron") {
@@ -2636,6 +2660,7 @@ distancing_effect_model <- function(
     prop_alpha <- prop_alpha * 0 
     prop_delta <- prop_delta * 0
     prop_omicron <- prop_omicron * 0 + 1
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
   if(voc_mixture == "wt") {
@@ -2643,14 +2668,22 @@ distancing_effect_model <- function(
     prop_alpha <- prop_alpha * 0 
     prop_delta <- prop_delta * 0
     prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0
   }
   
+  if(voc_mixture == "omicron_BA4") {
+    prop_wt <- prop_wt * 0
+    prop_alpha <- prop_alpha * 0 
+    prop_delta <- prop_delta * 0
+    prop_omicron <- prop_omicron * 0
+    prop_omicron_BA4 <- prop_omicron_BA4 * 0 + 1
+  }
   
 attach(phi_params)
   
 attach(contact_params)
   
-  phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron
+  phi_star <- prop_wt * 1 + prop_alpha * phi_alpha + prop_delta * phi_delta + prop_omicron * phi_omicron + prop_omicron_BA4 * phi_omicron_BA4
   
   p_star <- p ^ phi_star
   
@@ -4155,7 +4188,8 @@ ttd_survival <- function(days, dates, target_state, cdfs = NULL) {
 # returna date-by-state matrix of reduction in R due to faster detection of cases
 surveillance_effect <- function(dates, states, cdf,
                                 gi_bounds = c(0, 20),
-                                ttd_cdfs = NULL) {
+                                ttd_cdfs = NULL,
+                                ascertainment_rate = 1) {
   
   n_dates <- length(dates)
   n_states <- length(states)
@@ -4183,6 +4217,8 @@ surveillance_effect <- function(dates, states, cdf,
     date_state_mat[, i] <- c(ttd_days %*% gi_days)
     
   }
+  
+  date_state_mat <- 1 - ((1 - date_state_mat) * ascertainment_rate)
   
   date_state_mat
   
@@ -5339,7 +5375,8 @@ reff_model_data <- function(
   detection_cutoff = 0.95,
   notification_delay_cdf = NULL,
   n_weeks_before = NULL,
-  start_date = NULL
+  start_date = NULL,
+  immunity_effect_path = "outputs/vaccination_effect.RDS"
 ) {
   
   linelist_date <- max(linelist_raw$date_linelist)
@@ -5536,7 +5573,7 @@ linelist <- linelist_raw %>%
   
   
   
-  vaccine_effect_timeseries <- readRDS("outputs/vaccination_effect.RDS")
+  vaccine_effect_timeseries <- readRDS(immunity_effect_path)
   
   ve_omicron <- vaccine_effect_timeseries %>%
     filter(variant == "Omicron BA2") %>%
@@ -5544,6 +5581,10 @@ linelist <- linelist_raw %>%
   
   ve_delta <- vaccine_effect_timeseries %>%
     filter(variant == "Delta") %>%
+    select(date, state, effect)
+  
+  ve_omicron_BA4 <- vaccine_effect_timeseries %>%
+    filter(variant == "Omicron BA4/5") %>%
     select(date, state, effect)
   
   vaccine_effect_matrix_delta <- ve_delta %>%
@@ -5578,14 +5619,36 @@ linelist <- linelist_raw %>%
     dplyr::select(-date) %>%
     as.matrix
   
+  vaccine_effect_matrix_omicron_BA4 <- ve_omicron_BA4 %>%
+    pivot_wider(
+      names_from = state,
+      values_from = effect
+    ) %>%
+    right_join(
+      y = tibble(date = dates_project)
+    ) %>%
+    arrange(date) %>%
+    tidyr::fill(
+      everything(),
+      .direction = "updown"
+    ) %>%
+    dplyr::select(-date) %>%
+    as.matrix
+  
   
   omicron_matrix <- prop_variant(dates_project)$prop_omicron
   
   omicron_index <- which(omicron_matrix == 1)
   
+  omicron_BA4_matrix <- prop_variant(dates_project)$prop_omicron_BA4
+  
+  omicron_BA4_index <- which(omicron_BA4_matrix == 1)
+  
   vaccine_effect_matrix <- vaccine_effect_matrix_delta
   
   vaccine_effect_matrix[omicron_index] <- vaccine_effect_matrix_omicron[omicron_index]
+  
+  vaccine_effect_matrix[omicron_BA4_index] <- vaccine_effect_matrix_omicron_BA4[omicron_BA4_index]
   
   vaccine_dates <- unique(vaccine_effect_timeseries$date)
   
@@ -5711,9 +5774,11 @@ TP_params <- function(){
   phi_alpha       <- 1.454
   phi_delta_alpha <- 1.421
   phi_omicron_delta <- 1.170911
+  phi_omicron_BA2_BA4 <- 1
   
   phi_delta <- phi_alpha * phi_delta_alpha
   phi_omicron <- phi_delta * phi_omicron_delta
+  phi_omicron_BA4 <- phi_omicron * phi_omicron_BA2_BA4
   
            
            
@@ -5728,7 +5793,8 @@ module(log_q,
        phi_params = module(
        phi_alpha,
        phi_delta,
-       phi_omicron))
+       phi_omicron,
+       phi_omicron_BA4))
 }
 
 TP_only_likelihood <- function(data,
@@ -5757,11 +5823,14 @@ TP_only_model <- function(data) {
 
 TP_only_calculations <- function(data,
                                  params) {
+  
+  
   # reduction in R due to surveillance detecting and isolating infectious people
   surveillance_reff_local_reduction <- surveillance_effect(
     dates = data$dates$infection_project,
     cdf = gi_cdf,
-    states = data$states
+    states = data$states,
+    ascertainment_rate = data$ascertainment_matrix
   )
   
   
@@ -12132,47 +12201,86 @@ split_ticks_and_labels <- function(
   )
 }
 
-get_omicron_infections <- function(
+get_infections <- function(
   local_cases,
-  ascertainment_rates,
+  constant_ascertainment = TRUE,
+  ascertainment_rates = 0.5,
+  time_varying_ascertainment = date_state_ascertainment,
   state_population
 ){
   
-  omicron_infections_only <- local_cases %>%
-    mutate(
-      year = year(date) %>% as.integer,
-      week = isoweek(date) %>% as.integer,
-      month = month(date) %>% as.integer,
-      yearweek = if_else(
-        week == 52 & month == 1,
-        sprintf("%s%02d", year - 1, week),
-        sprintf("%s%02d", year, week)
+  if (constant_ascertainment) {
+    omicron_infections_only <- local_cases %>%
+      mutate(
+        year = year(date) %>% as.integer,
+        week = isoweek(date) %>% as.integer,
+        month = month(date) %>% as.integer,
+        yearweek = if_else(
+          week == 52 & month == 1,
+          sprintf("%s%02d", year - 1, week),
+          sprintf("%s%02d", year, week)
+        )
+      ) %>%
+      group_by(state, yearweek) %>%
+      mutate(
+        num_people = sum(cases)
+      ) %>%
+      filter(date == min(date)) %>%
+      ungroup %>%
+      mutate(
+        num_people = if_else(
+          date < "2021-12-01",
+          0,
+          num_people
+        )
+      ) %>%
+      select(date, state, num_people) %>%
+      expand_grid(
+        ascertainment = ascertainment_rates
+      ) %>%
+      mutate(
+        num_people = num_people/ascertainment
       )
-    ) %>%
-    group_by(state, yearweek) %>%
-    mutate(
-      num_people = sum(cases)
-    ) %>%
-    filter(date == min(date)) %>%
-    ungroup %>%
-    mutate(
-      num_people = if_else(
-        date < "2021-12-01",
-        0,
-        num_people
-      )
-    ) %>%
-    select(date, state, num_people) %>%
-    expand_grid(
-      ascertainment = ascertainment_rates
-    ) %>%
-    mutate(
-      num_people = num_people/ascertainment
-    )
+    
+  } else {
+    
+    omicron_infections_only <- local_cases %>%
+      mutate(
+        year = year(date) %>% as.integer,
+        week = isoweek(date) %>% as.integer,
+        month = month(date) %>% as.integer,
+        yearweek = if_else(
+          week == 52 & month == 1,
+          sprintf("%s%02d", year - 1, week),
+          sprintf("%s%02d", year, week)
+        )
+      ) %>%
+      group_by(state, yearweek) %>%
+      mutate(
+        num_people = sum(cases)
+      ) %>%
+      filter(date == min(date)) %>%
+      ungroup %>%
+      mutate(
+        num_people = if_else(
+          date < "2021-12-01",
+          0,
+          num_people
+        )
+      ) %>%
+      select(date, state, num_people) %>%
+      left_join(date_state_ascertainment,by = c("date", "state")) %>% 
+      mutate(ascertainment = replace_na(ascertainment,replace = 1)) %>% 
+      mutate(
+        num_people = num_people/ascertainment
+      ) %>% select(-ascertainment)
+  }
+  
+
   
   
   not_infected <- omicron_infections_only %>% 
-    group_by(state, ascertainment) %>%
+    group_by(state) %>%
     summarise(
       num_people = sum(num_people)
     ) %>%
@@ -12186,16 +12294,19 @@ get_omicron_infections <- function(
     mutate(
       date = NA_Date_
     ) %>%
-    select(date, state, num_people, ascertainment)
+    select(date, state, num_people)
   
   
   omicron_infections <- bind_rows(
     omicron_infections_only,
     not_infected
-  ) %>%
-    nest(
-      "omicron_infections" = -ascertainment
-    )
+  ) 
+  
+  #get BA4 differentiation
+  omicron_infections <- omicron_infections %>% 
+    mutate(subvariant = ifelse(date >= "2022-07-01","BA4","BA2"))
+  
+  omicron_infections <- list(omicron_infections)
   
   return(omicron_infections)
 }
@@ -12221,7 +12332,8 @@ get_infection_cohorts_at_date <- function(infection_series, target_date) {
     ) %>%
     mutate(
       immunity = case_when(
-        !is.na(date) ~ "omicron_infection",
+        date >= "2022-07-01" ~ "omicron_BA4_infection",
+        date < "2022-07-01" ~ "omicron_infection",
         TRUE ~ NA_character_
       )
     ) %>%
@@ -12307,13 +12419,14 @@ get_infection_efficacies_vax <- function(
         num_people_i = num_people,
         days_i = days_ago
       ) %>%
-      select(-date, -immunity) %>%
+      select(-date) %>%
       group_by(state) %>%
       mutate(
         weight_i = num_people_i / sum(num_people_i)
       ) %>%
       ungroup,
-    by = "state"
+    by = "state",
+    suffix = c("", "_i")
   ) %>%
     select(
       scenario,
@@ -12321,18 +12434,18 @@ get_infection_efficacies_vax <- function(
       age_band,
       num_people_v,
       num_people_i,
-      immunity,
       days_v,
       days_i,
       weight_v,
-      weight_i
+      weight_i,
+      immunity,
+      immunity_i
     ) %>%
     mutate(
       days_ago = pmin(days_v, days_i),
       weight = weight_v * weight_i
     ) %>%
     select(-days_v, -days_i, -weight_v, -weight_i)
-  
   
   # compute the average neutralisation level (mean log10 neut fold of WT
   # convalescent) in each age group, scenario, and omicron scenario
@@ -12361,15 +12474,29 @@ get_infection_efficacies_vax <- function(
         time = days_ago,
         maximum_log10_neut = peak_neuts,
         decay = neut_decay
+      ),
+      neuts_w_escape = case_when(
+        immunity_i == "omicron_infection" ~ log10_neut_over_time(
+          time = days_ago,
+          maximum_log10_neut = peak_neuts + log10(neut_immune_escape),
+          decay = neut_decay
+        ),
+        immunity_i == "omicron_BA4_infection" ~ log10_neut_over_time(
+          time = days_ago,
+          maximum_log10_neut = peak_neuts,
+          decay = neut_decay
+        )
       )
     ) %>%
     select(
       -starts_with("log10_mean_neut"),
       -peak_neuts,
-      -neut_decay
+      -neut_decay,
+      -immunity_i
     ) %>%
     mutate(
-      weighted_neuts = weight * neuts
+      weighted_neuts = weight * neuts,
+      weighted_neuts_w_escape = weight * neuts_w_escape
     ) %>%
     # average the mean neuts over cohorts and scenarios
     group_by(
@@ -12377,6 +12504,7 @@ get_infection_efficacies_vax <- function(
     ) %>%
     summarise(
       neuts = sum(weighted_neuts),
+      neuts_w_escape = sum(weighted_neuts_w_escape),
       .groups = "drop"
     )
   
@@ -12395,7 +12523,7 @@ get_infection_efficacies_vax <- function(
     ) %>%    
     mutate(
       neuts = case_when(
-        variant == "Omicron BA4/5" ~ neuts + log10(neut_immune_escape),
+        variant == "Omicron BA4/5" ~ neuts_w_escape,
         TRUE ~ neuts
       )
     ) %>%
@@ -12418,6 +12546,7 @@ get_infection_efficacies_vax <- function(
     ) %>%
     select(
       -neuts,
+      -neuts_w_escape,
       -log_k,
       -sd_log10_neut_titres,
       -omicron_log10_neut_fold,
@@ -12491,7 +12620,17 @@ get_infection_efficacies_infection_only <- function(vaccine_cohorts,
         # immunity == "Pf_dose_1" ~ log10_mean_neut_Pfizer_dose_1,
         # immunity == "Pf_dose_2" ~ log10_mean_neut_Pfizer_dose_2,
         # immunity == "mRNA_booster" ~ log10_mean_neut_mRNA_booster,
-        immunity == "omicron_infection" ~ log10_mean_neut_infection
+        immunity == "omicron_infection" ~ log10_mean_neut_infection,
+        immunity == "omicron_BA4_infection" ~ log10_mean_neut_infection
+      ),
+      peak_neuts_w_escape = case_when(
+        # immunity == "AZ_dose_1" ~ log10_mean_neut_AZ_dose_1,
+        # immunity == "AZ_dose_2" ~ log10_mean_neut_AZ_dose_2,
+        # immunity == "Pf_dose_1" ~ log10_mean_neut_Pfizer_dose_1,
+        # immunity == "Pf_dose_2" ~ log10_mean_neut_Pfizer_dose_2,
+        # immunity == "mRNA_booster" ~ log10_mean_neut_mRNA_booster,
+        immunity == "omicron_infection" ~ log10_mean_neut_infection + log10(neut_immune_escape),
+        immunity == "omicron_BA4_infection" ~ log10_mean_neut_infection
       )
     ) %>%
     mutate(
@@ -12499,19 +12638,26 @@ get_infection_efficacies_infection_only <- function(vaccine_cohorts,
         time = days_ago,
         maximum_log10_neut = peak_neuts,
         decay = neut_decay
+      ),
+      neuts_w_escape = log10_neut_over_time(
+        time = days_ago,
+        maximum_log10_neut = peak_neuts_w_escape,
+        decay = neut_decay
       )
     ) %>%
     select(
       -starts_with("log10_mean_neut"),
       -peak_neuts,
+      -peak_neuts_w_escape,
       -neut_decay
     ) %>%
     # average the mean neuts over cohorts and scenarios
     group_by(
-      state, omicron_scenario,
+      state, omicron_scenario
     ) %>%
     summarise(
       neuts = weighted.mean(neuts, num_people),
+      neuts_w_escape = weighted.mean(neuts_w_escape, num_people),
       .groups = "drop"
     )
   
@@ -12530,10 +12676,10 @@ get_infection_efficacies_infection_only <- function(vaccine_cohorts,
     ) %>%
     mutate(
       neuts = case_when(
-        variant == "Omicron BA4/5" ~ neuts + log10(neut_immune_escape),
+        variant == "Omicron BA4/5" ~ neuts_w_escape,
         TRUE ~ neuts
       )
-    ) %>%
+    ) %>% 
     # compute all the VEs in one shot with Gaussian integration
     pivot_longer(
       cols = starts_with("c50"),
@@ -12553,6 +12699,7 @@ get_infection_efficacies_infection_only <- function(vaccine_cohorts,
     ) %>%
     select(
       -neuts,
+      -neuts_w_escape,
       -log_k,
       -sd_log10_neut_titres,
       -omicron_log10_neut_fold,

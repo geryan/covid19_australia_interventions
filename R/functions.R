@@ -5915,8 +5915,6 @@ reff_model <- function(data, TP_obj = NULL) {
     TP_params <- NULL
   }
   
-  attach(TP_obj)
-  
   log_R_eff_loc_1 <- log(TP_obj$R_eff_loc_1)
   
   # extract R0 from this model and estimate R_t component due to quarantine for
@@ -6019,14 +6017,14 @@ reff_model <- function(data, TP_obj = NULL) {
       log_R_eff_loc,
       log_R_eff_imp,
       epsilon_L,
-      log_R0,
-      log_Qt,
-      distancing_effect,
-      surveillance_reff_local_reduction,
+      log_R0 = TP_obj$log_R0,
+      log_Qt = TP_obj$log_Qt,
+      distancing_effect = TP_obj$distancing_effect,
+      surveillance_reff_local_reduction = TP_obj$surveillance_reff_local_reduction,
       TP_obj,
       TP_params,
-      R_eff_loc_1,
-      R_eff_imp_1
+      R_eff_loc_1 = TP_obj$R_eff_loc_1,
+      R_eff_imp_1 = TP_obj$R_eff_imp_1
     )
   )
   

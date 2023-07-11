@@ -1,15 +1,15 @@
-source("R/lib.R")
-
-Sys.setenv(RETICULATE_AUTOCONFIGURE = FALSE)
-library(greta)
-library(greta.gp)
-library(tensorflow)
-
-tfp <- reticulate::import("tensorflow_probability")
-
-module <- greta::.internals$utils$misc$module
-fl <- greta:::fl
-tf_float <- greta:::tf_float
+# source("R/lib.R")
+# 
+# Sys.setenv(RETICULATE_AUTOCONFIGURE = FALSE)
+# library(greta)
+# library(greta.gp)
+# library(tensorflow)
+# 
+# tfp <- reticulate::import("tensorflow_probability")
+# 
+# module <- greta::.internals$utils$misc$module
+# fl <- greta:::fl
+# tf_float <- greta:::tf_float
 
 
 library(readr)
@@ -10961,19 +10961,25 @@ get_quantium_lookups <- function(dir) {
       sprintf(
         "%s/dim_scenario.csv",
         dir
-      ),
-      col_types = cols(
-        scenario = col_double(),
-        `5-11 uptake curve` = col_character(),
-        booster_shape = col_character(),
-        booster_scale_by_age = col_character(),
-        booster_uptake_terminal = col_double(),
-        booster_uptake_months = col_double()
-      )
+      )#,
+      # col_types = cols(
+      #   scenario = col_double(),
+      #   `5-11 uptake curve` = col_character(),
+      #   booster_shape = col_character(),
+      #   booster_scale_by_age = col_character(),
+      #   booster_uptake_terminal = col_double(),
+      #   booster_uptake_months = col_double()
+      # )
     ),
     sa4 = read_csv(
       sprintf(
         "%s/dim_sa4.csv",
+        dir
+      )
+    ),
+    state = read_csv(
+      sprintf(
+        "%s/dim_state.csv",
         dir
       )
     )

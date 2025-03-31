@@ -390,7 +390,7 @@ survey_question_first_asked <- function(dir = "data/survey_raw") {
     FUN = function(x, y){
       z <- y %in% x
       names(z) <- y
-      as_tibble_row(z)
+      tibble::as_tibble_row(z)
     },
     y = questions
   ) %>%
@@ -579,8 +579,21 @@ plot_single_response_line <- function(
 
 
 #### masks
-
-all_surveys <- parse_all_surveys()
+# all_surveys <- parse_all_surveys()
+all_surveys <- bind_rows(
+  parse_all_uom_surveys(dir = "~/Documents/tki_work/covid_modelling/behavioral_survey_data_processing/data/uom_surveys/unlocked/"),
+  parse_barometer(),
+  parse_all_doh_surveys()
+) %>%
+  mutate(
+    weekend_fraction = weekend_weight(date)
+  ) %>%
+  group_by(wave) %>%
+  mutate(
+    wave_date = median(date),
+    wave_duration = as.numeric(max(date) - min(date))
+  ) %>%
+  ungroup()
 
 mask_data_all <- get_mask_data_all(all_surv = all_surveys)
 
@@ -625,7 +638,8 @@ save_ggplot("masks_all_responses.png")
 
 
 
-hd <- hygiene_data()
+#hd <- hygiene_data()
+hd <- read_csv(file = "~/Documents/tki_work/covid_modelling/behavioral_survey_data_processing/outputs/hygiene_data.csv")
 
 mask_data_yn <- hd %>%
   filter(question == "Face covering") %>%
@@ -1042,8 +1056,8 @@ save_ggplot("mask_wearing_always_line_only.png")
 
 #### single response data
 
-all_survey_results <- parse_all_surveys()
-
+#all_survey_results <- parse_all_surveys()
+all_survey_results <- all_surveys
 
 save_date <- max(all_survey_results$wave_date) %>% 
   format("%Y%m%d")
